@@ -1,0 +1,14 @@
+name:                SourceGraph
+version:             0.0
+synopsis:            <Project description>
+description:         <Project description>
+category:            Development
+license:             GPL3
+license-file:        COPYRIGHT
+author:              Ivan Lazar Miljenovic
+maintainer:          Ivan.Miljenovic@gmail.com
+build-Depends:       base
+
+executable:          sourcegraph
+main-is:             Main.hs
+ghc-options:         -Wall

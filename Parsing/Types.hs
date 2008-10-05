@@ -27,58 +27,60 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Types for parsing Haskell modules.
  -}
-
 module Parsing.Types where
 
 import Data.Maybe
 import qualified Data.Map as M
 import Data.Map(Map)
-import System.FilePath(addExtension)
+import System.FilePath(addExtension, splitExtension)
 
-type HaskellModules = Map ModuleName HaskellModule
+-- -----------------------------------------------------------------------------
 
-data ModuleName = M (Maybe String) String
-                  deriving (Eq, Ord)
-
-type FunctionLookup = Map (Maybe String,String) Function
-
-type FunctionCalls = Map Function [Function]
-
-createLookup :: [Function] -> FunctionLookup
-createLookup = M.fromList . map addKey
-    where
-      addKey f = ((qualdBy f, name f), f)
-
-functionLookup      :: FunctionLookup -> Function -> Maybe Function
-functionLookup fl f = M.lookup k fl
-    where
-      k = (qualdBy f, name f)
-
-lookupFunctions    :: FunctionLookup -> [Function] -> [Function]
-lookupFunctions fl = catMaybes . map (functionLookup fl)
-
-
-unknownModule :: ModuleName
-unknownModule = M Nothing "Module Not Found"
-
-
-
-instance Show ModuleName where
-    show (M Nothing m)    = m
-    show (M (Just dir) m) = addExtension dir m
-
-
+-- | A high-level viewpoint of a Haskell module.
 data HaskellModule = Hs { moduleName :: ModuleName
                         , imports :: [ModuleName]
                         , exports :: [Function]
                         , functions :: FunctionCalls
                         }
 
+-- | A lookup-map of 'HaskellModule's.
+type HaskellModules = Map ModuleName HaskellModule
+
+-- -----------------------------------------------------------------------------
+
+-- | The name of a module.  The 'Maybe' component refers to the possible path
+--   of this module.
+data ModuleName = M (Maybe String) String
+                  deriving (Eq, Ord)
+
+instance Show ModuleName where
+    show (M Nothing m)    = m
+    show (M (Just dir) m) = addExtension dir m
+
+-- | Create the 'ModuleName' from its 'String' representation.
+createModule :: String -> ModuleName
+createModule m = case (splitExtension m) of
+                   (m',"") -> M Nothing m'
+                   (d,m')  -> M (Just d) m'
+
+-- | A default module, used for when you haven't specified which module
+--   something belongs to yet.
+unknownModule :: ModuleName
+unknownModule = M Nothing "Module Not Found"
+
+-- -----------------------------------------------------------------------------
+
+-- | The import list of a module.
 data HsImport = I { fromModule :: ModuleName
+                  -- | How the module was imported, if it actually was.
                   , qualAs     :: Maybe String
+                  -- | The functions from this module that were imported.
                   , importList :: [Function]
                   }
 
+-- -----------------------------------------------------------------------------
+
+-- | Defines a function.
 data Function = F { inModule :: ModuleName
                   , name     :: String
                   , qualdBy  :: Maybe String
@@ -86,17 +88,42 @@ data Function = F { inModule :: ModuleName
                 deriving (Eq, Ord)
 
 instance Show Function where
-    show f = name f
+    show f = addExtension (show $ inModule f) (name f)
 
+-- | Create a default function with using 'unknownModule'.
 defFunc   :: String -> Function
 defFunc f = F unknownModule f Nothing
 
-defFunc'     :: String -> String -> Function
-defFunc' q f = F unknownModule f (Just q)
-
-
+-- | Set the module of this function.
 setFuncModule     :: ModuleName -> Function -> Function
 setFuncModule m f = f { inModule = m }
 
+-- | Set the module of these functions.
 setFuncModules :: ModuleName -> [Function] -> [Function]
 setFuncModules m = map (setFuncModule m)
+
+-- | Defines a lookup map between the used qualifier and function name,
+--   and the actual /unqualified/ function.
+type FunctionLookup = Map (Maybe String,String) Function
+
+-- | Create a 'FunctionLookup' map using the given functions.
+createLookup :: [Function] -> FunctionLookup
+createLookup = M.fromList . map addKey
+    where
+      addKey f = ((qualdBy f, name f), f)
+
+-- | Try to lookup the given function.
+functionLookup      :: FunctionLookup -> Function -> Maybe Function
+functionLookup fl f = M.lookup k fl
+    where
+      k = (qualdBy f, name f)
+
+-- | Lookup the given functions, returning only those that are in the
+--   'FunctionLookup' map.
+lookupFunctions    :: FunctionLookup -> [Function] -> [Function]
+lookupFunctions fl = catMaybes . map (functionLookup fl)
+
+
+
+type FunctionCalls = Map Function [Function]
+

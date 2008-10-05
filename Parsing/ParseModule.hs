@@ -27,12 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Parse a Haskell module.
  -}
-module Parsing.ParseModule where
+module Parsing.ParseModule (parseModule) where
 
 import Parsing.Types
 
-import Language.Haskell.Exts.Parser hiding (parseModule)
-import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Syntax
 
 import Data.List
@@ -42,28 +40,20 @@ import Data.Map(Map)
 import Control.Arrow
 import System.FilePath(addExtension, splitExtension)
 
-import Debug.Trace
+-- -----------------------------------------------------------------------------
 
-traceList    :: (Show a) => [a] -> [a]
-traceList as = trace (unlines . map show $ as) as
+{- |
+   Parses a Haskell Module in 'HsModule' format into the internal
+   'HaskellModule' format.  The 'HaskellModules' parameter is used
+   to look up the export lists of all imported functions.
 
-traceMap :: (Show k, Show a) => Map k a -> Map k a
-traceMap m = trace (unlines . map show $ M.assocs m) m
+   The resulting 'HaskellModule'\'s 'functions' field is a 'Map' that
+   maps all functions defined in this module to those functions
+   accessible to them from modules in the first parameter.
 
-tracer   :: (Show a) => a -> a
-tracer a = trace (show a) a
-
-tracer' s a = trace (unwords [s,show a]) a
-
-tester f = do let parser = parseModuleWithMode (ParseMode f)
-              fileContents <- readFile f
-              case (parser fileContents) of
-                ParseOk p -> return (Just p)
-                _         -> return Nothing
-
-printList :: (Show a) => [a] -> IO ()
-printList = mapM_ (putStrLn . show)
-
+   At the moment, parsing works only on stand-alone functions, i.e. no
+   data structures, class declarations or instance declarations.
+ -}
 parseModule :: HaskellModules -> HsModule -> HaskellModule
 parseModule hm (HsModule _ mod exp imp decls) = Hs { moduleName = m
                                                    , imports    = imps'
@@ -71,32 +61,25 @@ parseModule hm (HsModule _ mod exp imp decls) = Hs { moduleName = m
                                                    , functions  = fs
                                                    }
     where
-      m = createModule mod
+      m = createModule' mod
       (imps,fl) = parseImports hm imp
       imps' = map fromModule imps
+      -- If there isn't an export list, export everything.
+      exps = maybe defFuncs (parseExports m) exp
+      fs = M.fromList funcs
+      -- We utilise "Tying-the-knot" here to simultaneously update the
+      -- lookup map as well as utilise that lookup map.
       funcs = functionCalls m fl' decls
       defFuncs = map fst funcs
       flInternal = createLookup defFuncs
       fl' = M.union fl flInternal
-      fs = M.fromList funcs
-      exps = maybe defFuncs (parseExports m) exp
 
-parseExport               :: ModuleName -> HsExportSpec -> Maybe Function
-parseExport m (HsEVar qn) = fmap (setFuncModule m) $ hsName qn
-parseExport _ _           = Nothing
+-- | Create the 'ModuleName'.
+createModule' :: Module -> ModuleName
+createModule' = createModule . modName
 
-parseExports   :: ModuleName -> [HsExportSpec] -> [Function]
-parseExports m = catMaybes . map (parseExport m)
-
-
-modName            :: Module -> String
-modName (Module m) = m
-
-createModule   :: Module -> ModuleName
-createModule m = case (splitExtension $ modName m) of
-                   (m',"") -> M Nothing m'
-                   (d,m')  -> M (Just d) m'
-
+-- | Parse all import declarations, and create the 'FunctionLookup' map
+--   on the imports.
 parseImports       :: HaskellModules -> [HsImportDecl]
                    -> ([HsImport],FunctionLookup)
 parseImports hm is = (is', flookup)
@@ -111,18 +94,50 @@ parseImport hm im
     | not (M.member m hm) = Nothing -- This module isn't available.
     | otherwise           = Just $ I m qual imps
     where
-      m = createModule $ importModule im
-      qual = fmap modName $ importAs im
+      mn = importModule im
+      m = createModule' mn
+      -- Determine if this module has been imported with an /as/ prefix.
+      -- If not, it has the entire name as its prefix.
+      qual = fmap modName (importAs im)
+      qual' = fromMaybe (modName mn) qual
+      -- Try and get the functions that this module exports.
       mExport = exports $ hm M.! m
       mImport = case (importSpecs im) of
+                  -- Everything was imported
                   Nothing -> mExport
+                  -- Only specific items were imported.
                   Just (True, ims) -> getFunctions m ims
+                  -- These items were hidden.
                   Just (False, hd) -> mExport \\ (getFunctions m hd)
-      qImport = maybe [] (\q -> map (addQual q) mImport) qual
+      qImport = map (addQual qual') mImport
       imps = if (importQualified im)
              then qImport
              else mImport ++ qImport
+      getFunctions m = map (setModule m) . getItems
+      setModule m f = F m f Nothing
+      getItems = catMaybes . map getImport
+      -- We only care about functions, variables, etc.
+      getImport (HsIVar nm) = Just (nameOf nm)
+      getImport _           = Nothing
 
+
+
+-- | Parsing the export list.
+parseExports   :: ModuleName -> [HsExportSpec] -> [Function]
+parseExports m = catMaybes . map (parseExport m)
+    where
+      -- We only care about exported functions.
+      parseExport m (HsEVar qn) = fmap (setFuncModule m) $ hsName qn
+      parseExport _ _           = Nothing
+
+-- | Parse the contents of the module.  For each stand-alone function,
+--   return it along with all other known functions that it calls.
+functionCalls         :: ModuleName -> FunctionLookup -> [HsDecl]
+                      -> [(Function, [Function])]
+functionCalls m fl ds = catMaybes $ map (functionCall m fl) ds
+
+-- | Parse an individual 'HsDecl'.  We only parse 'HsFunBind' and 'HsPatBind'
+--   declarations, as they're the only ones that define stand-alone functions.
 functionCall :: ModuleName -> FunctionLookup -> HsDecl
              -> Maybe (Function, [Function])
 functionCall m fl d@(HsFunBind {}) = fmap (flip (,) calls) nm
@@ -135,54 +150,42 @@ functionCall m fl d@(HsPatBind {}) = fmap (flip (,) calls) nm
       calls = lookupFunctions fl $ hsNames d
 functionCall _ _ _ = Nothing
 
-functionCalls         :: ModuleName -> FunctionLookup -> [HsDecl]
-                      -> [(Function, [Function])]
-functionCalls m fl ds = catMaybes $ map (functionCall m fl) ds
-
--- \f xs -> let rs = map (f rs) xs in rs
-
 -- -----------------------------------------------------------------------------
 
+-- Utility functions.
+
+-- | Extract the actual name of the 'Module'.
+modName            :: Module -> String
+modName (Module m) = m
+
+-- | A true list-difference function.  The default '\\\\' function only deletes
+--   the first instance of each value, this deletes /all/ of them.
 diff       :: (Eq a) => [a] -> [a] -> [a]
 diff xs ys = filter (not . flip elem ys) xs
 
-getFunctions   :: ModuleName -> [HsImportSpec] -> [Function]
-getFunctions m = map (setModule m) . getItems
-
-setModule     :: ModuleName -> String -> Function
-setModule m f = F m f Nothing
-
+-- | Specify the qualification that this function was imported with.
 addQual     :: String -> Function -> Function
 addQual q f = f { qualdBy = Just q }
 
-
-getItems :: [HsImportSpec] -> [String]
-getItems = catMaybes . map getImport
-
--- | We only care about functions, variables, etc.
-getImport :: HsImportSpec -> Maybe String
-getImport (HsIVar nm) = Just (nameOf nm)
-getImport _           = Nothing
-
 -- -----------------------------------------------------------------------------
-{-
--- Names, identities, etc.
--}
 
-class HsItem f where
-    hsName :: f -> Maybe Function
+-- | Parsing of names, identifiers, etc.
 
 nameOf              :: HsName -> String
 nameOf (HsIdent  i) = i
 nameOf (HsSymbol s) = s
 
+-- The class of parsed items which represent a single element.
+class HsItem f where
+    hsName :: f -> Maybe Function
+
+instance HsItem HsName where
+    hsName nm = Just $ defFunc (nameOf nm)
+
 -- Implicit parameters
 instance HsItem HsIPName where
     hsName (HsIPDup v) = Just $ defFunc v
     hsName (HsIPLin v) = Just $ defFunc v
-
-instance HsItem HsName where
-    hsName nm = Just $ defFunc (nameOf nm)
 
 -- Qualified variables and constructors
 instance HsItem HsQName where
@@ -210,12 +213,19 @@ instance HsItem HsCName where
 instance HsItem HsLiteral where
     hsName _ = Nothing
 
-hsName'        :: (HsItem i) => i -> [Function]
-hsName' i = maybeToList (hsName i)
+-------------------------------------------------------------------------------
+
+-- | Functions, blocks, etc.
 
 class HsItemList vs where
     hsNames :: vs -> [Function]
 
+-- | A \"compatibility\" function to pseudo-convert an instance of 'HsItem'
+--   into one that acts like one from 'HsItemList'
+hsName'        :: (HsItem i) => i -> [Function]
+hsName' i = maybeToList (hsName i)
+
+-- A list of 'HsItemList' instances can be treated as a single instance.
 instance (HsItemList vs) => HsItemList [vs] where
     hsNames vss = concatMap hsNames vss
 
@@ -346,6 +356,9 @@ instance HsItemList HsIPBind where
           ip' = hsName' ip
           e' = hsNames e
 
+-- -----------------------------------------------------------------------------
+
+-- | Those parsed elements that represent a function.
 class FunctionNames fn where
     functionNames :: fn -> [Function]
 

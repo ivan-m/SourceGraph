@@ -57,14 +57,17 @@ createModuleMap = M.fromList . map (\m -> (moduleName m, m))
 data ModuleName = M (Maybe String) String
                   deriving (Eq, Ord)
 
+-- | The seperator between components of a module.
 moduleSep :: Char
 moduleSep = '.'
 
+-- | Split the module string into a path string and a name string.
 splitMod   :: String -> (String,String)
 splitMod m = case (break (moduleSep ==) m) of
                (m',"")  -> ("",m')
                (p,_:m') -> first (addPath p) $ splitMod m'
 
+-- | Add two path components together.
 addPath       :: String -> String -> String
 addPath "" m  = m
 addPath p  "" = p

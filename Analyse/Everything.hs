@@ -117,9 +117,9 @@ cliqueAnal cd
     | otherwise = Just elem
     where
       clqs = applyAlg cliquesIn cd
-      clqs' = Paragraph $ map (Text . showNodes) clqs
+      clqs' = map (Paragraph . return . Text . showNodes) clqs
       text = Text "The code has the following cliques:"
-      elem = Section title [Paragraph [text], clqs']
+      elem = Section title $ (Paragraph [text]) : clqs'
       title = Text "Overall clique analysis"
 
 cycleAnal :: CodeData -> Maybe DocElement
@@ -128,9 +128,9 @@ cycleAnal cd
     | otherwise = Just elem
     where
       cycs = applyAlg uniqueCycles cd
-      cycs' = Paragraph $ map (Text . showCycle) cycs
+      cycs' = map (Paragraph . return . Text . showCycle) cycs
       text = Text "The code has the following non-clique cycles:"
-      elem = Section title [Paragraph [text], cycs']
+      elem = Section title $ (Paragraph [text]) : cycs'
       title = Text "Overall cycle analysis"
 
 chainAnal :: CodeData -> Maybe DocElement
@@ -139,11 +139,12 @@ chainAnal cd
     | otherwise = Just elem
     where
       chns = applyAlg chainsIn cd
-      chns' = Paragraph $ map (Text . showPath) chns
+      chns' = map (Paragraph .return . Text . showPath) chns
       text = Text "The functions have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
-      elem = Section title [Paragraph [text], chns', Paragraph [textAfter]]
+      elem = Section title $
+             [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       title = Text "Overall chain analysis"
 
 rootAnal :: CodeData -> Maybe DocElement

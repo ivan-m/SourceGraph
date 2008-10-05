@@ -36,8 +36,6 @@ import Language.Haskell.Exts.Syntax
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
-import Data.Map(Map)
-import Control.Arrow
 
 -- -----------------------------------------------------------------------------
 
@@ -54,21 +52,21 @@ import Control.Arrow
    data structures, class declarations or instance declarations.
  -}
 parseModule :: HaskellModules -> HsModule -> HaskellModule
-parseModule hm (HsModule _ mod exp imp decls) = Hs { moduleName = m
+parseModule hm (HsModule _ md exps imp decls) = Hs { moduleName = m
                                                    , imports    = imps'
-                                                   , exports    = exps
+                                                   , exports    = exps'
                                                    , functions  = fs
                                                    }
     where
-      m = createModule' mod
+      m = createModule' md
       (imps,fl) = parseImports hm imp
       imps' = map fromModule imps
       -- If there isn't an export list, export everything.
       -- The exception is if there isn't an export list but there is a
       -- /main/ function, in which case only export that.
-      exps | isJust exp = parseExports m $ fromJust exp
-           | hasMain    = [mainFunc]
-           | otherwise  = defFuncs
+      exps' | isJust exps = parseExports m $ fromJust exps
+            | hasMain     = [mainFunc]
+            | otherwise   = defFuncs
       mainFunc = F m (nameOf main_name) Nothing
       hasMain = elem mainFunc defFuncs
       fs = M.fromList funcs

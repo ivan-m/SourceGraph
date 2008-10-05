@@ -109,11 +109,12 @@ cycleAnal id
     | otherwise = Just elem
     where
       cycs = applyAlg cyclesIn id
-      cycs' = Paragraph $ map (Text . showCycle) cycs
+      cycs' = map (Paragraph .return . Text . showCycle) cycs
       text = Text "The imports have the following cycles:"
       textAfter = Text "Whilst this is valid, it may make it difficult \
                        \to use in ghci, etc."
-      elem = Section title [Paragraph [text], cycs', Paragraph [textAfter]]
+      elem = Section title
+             $ (Paragraph [text]) : cycs' ++ [Paragraph [textAfter]]
       title = Text "Cycle analysis of imports"
 
 chainAnal :: ImportData -> Maybe DocElement
@@ -122,11 +123,12 @@ chainAnal id
     | otherwise = Just elem
     where
       chns = applyAlg chainsIn id
-      chns' = Paragraph $ map (Text . showPath) chns
+      chns' = map (Paragraph .return . Text . showPath) chns
       text = Text "The imports have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single module."
-      elem = Section title [Paragraph [text], chns', Paragraph [textAfter]]
+      elem = Section title $
+             [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       title = Text "Import chain analysis"
 
 rootAnal :: ImportData -> Maybe DocElement

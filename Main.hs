@@ -58,14 +58,15 @@ main = do input <- getArgs
                 -> putErrLn "Please pass in a .cabal file"
             Just cbl
                 -> do pcbl <- parseCabal cbl
-                      putStrLn "parsed cabal"
                       case pcbl of
                         Nothing
                             -> putErrLn $ unwords [cbl,"is unparseable"]
                         Just (nm,exps)
                             -> do let dir = dropFileName cbl
-                                  hms <- parseFilesFrom dir
-                                  putStrLn "parsed modules"
+                                  dir' <- if null dir
+                                            then getCurrentDirectory
+                                            else return dir
+                                  hms <- parseFilesFrom dir'
                                   analyseCode dir nm exps hms
 
 programName :: String
@@ -185,7 +186,6 @@ analyseCode                :: FilePath -> String -> [ModuleName]
 analyseCode fp nm exps hms = do d <- today
                                 g <- newStdGen
                                 let dc = doc d g
-                                putStrLn "let's create the document"
                                 out <- createDocument pandocHtml dc
                                 case out of
                                   Just fp -> success fp
@@ -199,7 +199,7 @@ analyseCode fp nm exps hms = do d <- today
                     , content       = c g
                     }
       rt = fp </> programName
-      sv s v = s ++ "(version " ++ v ++ ")"
+      sv s v = s ++ " (version " ++ v ++ ")"
       t = Grouping [Text "Analysis of", Emphasis $ Text nm]
       a = unwords [ "Analysed by", sv programName programVersion
                   , "using", sv "Graphalyze" version]

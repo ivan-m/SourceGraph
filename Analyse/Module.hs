@@ -114,9 +114,9 @@ cliqueAnal (m,fd)
     | otherwise = Just elem
     where
       clqs = applyAlg cliquesIn fd
-      clqs' = Paragraph $ map (Text . showNodes) clqs
+      clqs' = map (Paragraph . return . Text . showNodes) clqs
       text = Text $ printf "The module %s has the following cliques:" m
-      elem = Section title [Paragraph [text], clqs']
+      elem = Section title $ (Paragraph [text]) : clqs'
       title = Grouping [ Text "Clique analysis of"
                        , Emphasis (Text m)]
 
@@ -126,10 +126,10 @@ cycleAnal (m,fd)
     | otherwise = Just elem
     where
       cycs = applyAlg uniqueCycles fd
-      cycs' = Paragraph $ map (Text . showCycle) cycs
+      cycs' = map (Paragraph . return . Text . showCycle) cycs
       text = Text $ printf "The module %s has the following non-clique \
                             \cycles:" m
-      elem = Section title [Paragraph [text], cycs']
+      elem = Section title $ (Paragraph [text]) : cycs'
       title = Grouping [ Text "Cycle analysis of"
                        , Emphasis (Text m)]
 
@@ -139,11 +139,12 @@ chainAnal (m,fd)
     | otherwise = Just elem
     where
       chns = applyAlg chainsIn fd
-      chns' = Paragraph $ map (Text . showPath) chns
+      chns' = map (Paragraph . return . Text . showPath) chns
       text = Text $ printf "The module %s has the following chains:" m
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
-      elem = Section title [Paragraph [text], chns', Paragraph [textAfter]]
+      elem = Section title
+             $ [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       title = Grouping [ Text "Chain analysis of"
                        , Emphasis (Text m)]
 
@@ -201,15 +202,15 @@ collapseAnal (m,fd) = Just elem
 
 
 cycleCompAnal        :: FunctionData -> Maybe DocElement
-cycleCompAnal (m,fd) = Just $ Section title [par]
+cycleCompAnal (m,fd) = Just $ Section title pars
     where
       cc = cyclomaticComplexity fd
       title = Grouping [ Text "Cyclomatic Complexity of"
                        , Emphasis (Text m)]
-      par = Paragraph [text, textAfter, link]
+      pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
-             $ printf "The cyclomatic complexity of %m is: %d" m cc
+             $ printf "The cyclomatic complexity of %s is: %d." m cc
       textAfter = Text "For more information on cyclomatic complexity, \
-                       \please see:"
+                       \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
                      (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

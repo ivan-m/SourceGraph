@@ -44,9 +44,9 @@ import Control.Arrow(first)
 
 -- | A high-level viewpoint of a Haskell module.
 data HaskellModule = Hs { moduleName :: ModuleName
-                        , imports :: [ModuleName]
-                        , exports :: [Function]
-                        , functions :: FunctionCalls
+                        , imports    :: [ModuleName]
+                        , exports    :: [Function]
+                        , functions  :: FunctionCalls
                         }
 
 -- | A lookup-map of 'HaskellModule's.
@@ -62,7 +62,10 @@ modulesIn = M.keys
 moduleImports :: HaskellModules -> [(ModuleName,ModuleName)]
 moduleImports = concatMap mkEdges . M.assocs
     where
-      mkEdges (m,ms) = map ((,) m) ms
+      mkEdges (m,hm) = map ((,) m) $ imports hm
+
+hModulesIn :: HaskellModules -> [HaskellModule]
+hModulesIn = M.elems
 
 -- -----------------------------------------------------------------------------
 

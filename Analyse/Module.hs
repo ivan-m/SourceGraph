@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of Haskell modules.
  -}
-module Analyse.Module(analyseModule) where
+module Analyse.Module(analyseModules) where
 
 import Parsing.Types
 import Analyse.Utils
@@ -47,6 +47,10 @@ type FunctionData = (String, GraphData AString)
 -- -----------------------------------------------------------------------------
 
 -- Analysing.
+
+-- | Performs analysis of all modules present in the 'HaskellModules' provided.
+analyseModules :: HaskellModules -> [DocElement]
+analyseModules = map analyseModule . hModulesIn
 
 -- | Performs analysis of the given 'HaskellModule'.
 analyseModule    :: HaskellModule -> DocElement

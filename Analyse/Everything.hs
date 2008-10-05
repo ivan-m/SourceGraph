@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
    Maintainer  : Ivan.Miljenovic@gmail.com
 
    Analysis of the entire overall piece of software.
- -} |
+ -}
 module Analyse.Everything where
 
 import Parsing.Types

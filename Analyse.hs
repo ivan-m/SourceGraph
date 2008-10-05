@@ -44,7 +44,7 @@ import System.Random
 --   'HaskellModules' form.
 analyse            :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
                    -> [DocElement]
-analyse g exps hms = [ analyseModules hms)
+analyse g exps hms = [ analyseModules hms
                      , analyseImports g exps hms
                      , analyseEverything g exps hms
                      ]

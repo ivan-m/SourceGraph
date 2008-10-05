@@ -31,16 +31,85 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Main where
 
 import Parsing
+import Analyse
+
+import Data.Graph.Analysis
+import Data.Graph.Analysis.Reporting.Pandoc
+
+import Distribution.Package
+import Distribution.PackageDescription hiding (author)
+import Distribution.Verbosity
 
 import Data.List
 import Data.Maybe
+import System.IO
 import System.Directory
 import System.FilePath
+import System.Random
+import System.Environment
 import Control.Monad
 import Control.Exception
 
-main = return ()
+main :: IO ()
+main = do input <- getArgs
+          let mcbl = getCabalFile input
+          case mcbl of
+            Nothing
+                -> putErrLn "Please pass in a .cabal file"
+            Just cbl
+                -> do pcbl <- parseCabal cbl
+                      putStrLn "parsed cabal"
+                      case pcbl of
+                        Nothing
+                            -> putErrLn $ unwords [cbl,"is unparseable"]
+                        Just (nm,exps)
+                            -> do let dir = dropFileName cbl
+                                  hms <- parseFilesFrom dir
+                                  putStrLn "parsed modules"
+                                  analyseCode dir nm exps hms
 
+programName :: String
+programName = "SourceGraph"
+
+programVersion :: String
+programVersion = "0.0"
+
+putErrLn :: String -> IO ()
+putErrLn = hPutStrLn stderr
+
+-- -----------------------------------------------------------------------------
+
+parseCabal    :: FilePath -> IO (Maybe (String, [ModuleName]))
+parseCabal fp = do gpd <- try $ readPackageDescription silent fp
+                   case gpd of
+                     (Right gpd') -> return (Just $ parse gpd')
+                     (Left _)     -> return Nothing
+    where
+      parse pd = (nm, exp')
+          where
+            cbl = packageDescription pd
+            nm = pkgName $ package cbl
+            cexes :: [Executable]
+            cexes = map (condTreeData .snd) $ condExecutables pd
+            exes = executables cbl
+            clib = condLibrary pd
+            lib = library cbl
+            exp | not $ null cexes = nub $ map (dropExtension . modulePath) cexes
+                | not $ null exes  = nub . map dropExtension $ exeModules cbl
+                | isJust clib      = exposedModules . condTreeData
+                                     $ fromJust clib
+                | isJust lib       = exposedModules $ fromJust lib
+                | otherwise        = error "No exposed modules"
+            exp' = map createModule exp
+
+getCabalFile :: [FilePath] -> Maybe FilePath
+getCabalFile = listToMaybe . filter isCabalFile
+    where
+      isCabalFile f  = (takeExtension f) == (extSeparator : "cabal")
+
+-- -----------------------------------------------------------------------------
+
+-- | Recursively parse all files from this directory
 parseFilesFrom    :: FilePath -> IO HaskellModules
 parseFilesFrom fp = do files <- getHaskellFilesFrom fp
                        cnts <- readFiles files
@@ -108,3 +177,32 @@ isTrivial      :: FilePath -> Bool
 isTrivial "."  = True
 isTrivial ".." = True
 isTrivial _    = False
+
+-- -----------------------------------------------------------------------------
+
+analyseCode                :: FilePath -> String -> [ModuleName]
+                           -> HaskellModules -> IO ()
+analyseCode fp nm exps hms = do d <- today
+                                g <- newStdGen
+                                let dc = doc d g
+                                putStrLn "let's create the document"
+                                out <- createDocument pandocHtml dc
+                                case out of
+                                  Just fp -> success fp
+                                  Nothing -> failure
+    where
+      doc d g = Doc { rootDirectory = rt
+                    , fileFront     = nm
+                    , title         = t
+                    , author        = a
+                    , date          = d
+                    , content       = c g
+                    }
+      rt = fp </> programName
+      sv s v = s ++ "(version " ++ v ++ ")"
+      t = Grouping [Text "Analysis of", Emphasis $ Text nm]
+      a = unwords [ "Analysed by", sv programName programVersion
+                  , "using", sv "Graphalyze" version]
+      c g = analyse g exps hms
+      success fp = putStrLn $ unwords ["Report generated at:",fp]
+      failure = putErrLn "Unable to generate report"

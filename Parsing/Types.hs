@@ -1,3 +1,7 @@
+{-# LANGUAGE MultiParamTypeClasses
+            , TypeSynonymInstances
+ #-}
+
 {-
 Copyright (C) 2008 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
 
@@ -29,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Parsing.Types where
 
+import Data.Graph.Analysis.Types
+
 import Data.Maybe
 import qualified Data.Map as M
 import Data.Map(Map)
@@ -50,12 +56,24 @@ type HaskellModules = Map ModuleName HaskellModule
 createModuleMap :: [HaskellModule] -> HaskellModules
 createModuleMap = M.fromList . map (\m -> (moduleName m, m))
 
+modulesIn :: HaskellModules -> [ModuleName]
+modulesIn = M.keys
+
+moduleImports :: HaskellModules -> [(ModuleName,ModuleName)]
+moduleImports = concatMap mkEdges . M.assocs
+    where
+      mkEdges (m,ms) = map ((,) m) ms
+
 -- -----------------------------------------------------------------------------
 
 -- | The name of a module.  The 'Maybe' component refers to the possible path
 --   of this module.
 data ModuleName = M (Maybe String) String
                   deriving (Eq, Ord)
+
+instance ClusterLabel ModuleName String where
+    cluster (M p _) = fromMaybe "" p
+    nodelabel (M _ m) = m
 
 -- | The seperator between components of a module.
 moduleSep :: Char
@@ -110,6 +128,10 @@ data Function = F { inModule :: ModuleName
 instance Show Function where
     show f = addPath (show $ inModule f) (name f)
 
+instance ClusterLabel Function ModuleName where
+    cluster = inModule
+    nodelabel = name
+
 -- | Create a default function with using 'unknownModule'.
 defFunc   :: String -> Function
 defFunc f = F unknownModule f Nothing
@@ -143,7 +165,21 @@ functionLookup fl f = M.lookup k fl
 lookupFunctions    :: FunctionLookup -> [Function] -> [Function]
 lookupFunctions fl = catMaybes . map (functionLookup fl)
 
-
-
 type FunctionCalls = Map Function [Function]
 
+-- | Get every function call as a pair.
+functionEdges :: FunctionCalls -> [(Function,Function)]
+functionEdges = concatMap mkEdges . M.assocs
+    where
+      mkEdges (f,fs) = map ((,) f) fs
+
+-- The next two functions are defined to avoid having to import
+-- Data.Map in modules that use this one.
+
+-- | Gets the functions
+functionsIn :: FunctionCalls -> [Function]
+functionsIn = M.keys
+
+-- | Combine multiple function calls
+combineCalls :: [FunctionCalls] -> FunctionCalls
+combineCalls = M.unions

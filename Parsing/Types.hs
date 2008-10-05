@@ -32,7 +32,7 @@ module Parsing.Types where
 import Data.Maybe
 import qualified Data.Map as M
 import Data.Map(Map)
-import System.FilePath(addExtension, splitExtension)
+import Control.Arrow(first)
 
 -- -----------------------------------------------------------------------------
 
@@ -57,13 +57,26 @@ createModuleMap = M.fromList . map (\m -> (moduleName m, m))
 data ModuleName = M (Maybe String) String
                   deriving (Eq, Ord)
 
+moduleSep :: Char
+moduleSep = '.'
+
+splitMod   :: String -> (String,String)
+splitMod m = case (break (moduleSep ==) m) of
+               (m',"")  -> ("",m')
+               (p,_:m') -> first (addPath p) $ splitMod m'
+
+addPath       :: String -> String -> String
+addPath "" m  = m
+addPath p  "" = p
+addPath p  m  = p ++ (moduleSep : m)
+
 instance Show ModuleName where
     show (M Nothing m)    = m
-    show (M (Just dir) m) = addExtension dir m
+    show (M (Just dir) m) = addPath dir m
 
 -- | Create the 'ModuleName' from its 'String' representation.
 createModule :: String -> ModuleName
-createModule m = case (splitExtension m) of
+createModule m = case (splitMod m) of
                    (m',"") -> M Nothing m'
                    (d,m')  -> M (Just d) m'
 
@@ -92,7 +105,7 @@ data Function = F { inModule :: ModuleName
                 deriving (Eq, Ord)
 
 instance Show Function where
-    show f = addExtension (show $ inModule f) (name f)
+    show f = addPath (show $ inModule f) (name f)
 
 -- | Create a default function with using 'unknownModule'.
 defFunc   :: String -> Function

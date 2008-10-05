@@ -38,7 +38,6 @@ import Data.Maybe
 import qualified Data.Map as M
 import Data.Map(Map)
 import Control.Arrow
-import System.FilePath(addExtension, splitExtension)
 
 -- -----------------------------------------------------------------------------
 

@@ -46,6 +46,10 @@ data HaskellModule = Hs { moduleName :: ModuleName
 -- | A lookup-map of 'HaskellModule's.
 type HaskellModules = Map ModuleName HaskellModule
 
+-- | Create the 'HaskellModules' lookup map from a list of 'HaskellModule's.
+createModuleMap :: [HaskellModule] -> HaskellModules
+createModuleMap = M.fromList . map (\m -> (moduleName m, m))
+
 -- -----------------------------------------------------------------------------
 
 -- | The name of a module.  The 'Maybe' component refers to the possible path

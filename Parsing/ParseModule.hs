@@ -65,7 +65,13 @@ parseModule hm (HsModule _ mod exp imp decls) = Hs { moduleName = m
       (imps,fl) = parseImports hm imp
       imps' = map fromModule imps
       -- If there isn't an export list, export everything.
-      exps = maybe defFuncs (parseExports m) exp
+      -- The exception is if there isn't an export list but there is a
+      -- /main/ function, in which case only export that.
+      exps | isJust exp = parseExports m $ fromJust exp
+           | hasMain    = [mainFunc]
+           | otherwise  = defFuncs
+      mainFunc = F m (nameOf main_name) Nothing
+      hasMain = elem mainFunc defFuncs
       fs = M.fromList funcs
       -- We utilise "Tying-the-knot" here to simultaneously update the
       -- lookup map as well as utilise that lookup map.

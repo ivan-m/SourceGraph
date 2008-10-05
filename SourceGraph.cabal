@@ -1,5 +1,5 @@
 Name:                SourceGraph
-Version:             0.0
+Version:             0.1
 Synopsis:            Use graph-theory to analyse your code
 Description:         SourceGraph uses the Graphalyze library to analyse
                      Cabalized Haskell code.

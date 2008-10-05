@@ -73,7 +73,7 @@ programName :: String
 programName = "SourceGraph"
 
 programVersion :: String
-programVersion = "0.0"
+programVersion = "0.1"
 
 putErrLn :: String -> IO ()
 putErrLn = hPutStrLn stderr

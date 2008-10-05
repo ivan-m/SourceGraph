@@ -67,6 +67,9 @@ moduleImports = concatMap mkEdges . M.assocs
 hModulesIn :: HaskellModules -> [HaskellModule]
 hModulesIn = M.elems
 
+getModule      :: HaskellModules -> ModuleName -> Maybe HaskellModule
+getModule hm m = M.lookup m hm
+
 -- -----------------------------------------------------------------------------
 
 -- | The name of a module.  The 'Maybe' component refers to the possible path

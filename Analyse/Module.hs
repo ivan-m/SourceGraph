@@ -49,8 +49,9 @@ type FunctionData = (String, GraphData AString)
 -- Analysing.
 
 -- | Performs analysis of all modules present in the 'HaskellModules' provided.
-analyseModules :: HaskellModules -> [DocElement]
-analyseModules = map analyseModule . hModulesIn
+analyseModules :: HaskellModules -> DocElement
+analyseModules = Section (Text "Analysis of each module")
+                 . map analyseModule . hModulesIn
 
 -- | Performs analysis of the given 'HaskellModule'.
 analyseModule    :: HaskellModule -> DocElement
@@ -62,6 +63,7 @@ analyseModule hm = Section title elems
               $ map ($fd) [ graphOf
                           , collapseAnal
                           , coreAnal
+                          , cycleCompAnal
                           , rootAnal
                           , componentAnal
                           , cliqueAnal
@@ -174,7 +176,7 @@ coreAnal (m,fd) = Just elem
       p = m ++ "_core"
       label = unwords ["Core of", m]
       hdr = Paragraph [Text "The core of a module can be thought of as \
-                             \where all the work is actually done."]
+                             \the part where all the work is actually done."]
       empMsg = Paragraph [Text $ printf "The module %s is a tree." m]
       anal = if (isEmpty core)
              then empMsg
@@ -197,3 +199,17 @@ collapseAnal (m,fd) = Just elem
       title = Grouping [ Text "Collapsed view of"
                        , Emphasis (Text m)]
 
+
+cycleCompAnal        :: FunctionData -> Maybe DocElement
+cycleCompAnal (m,fd) = Just $ Section title [par]
+    where
+      cc = cyclomaticComplexity fd
+      title = Grouping [ Text "Cyclomatic Complexity of"
+                       , Emphasis (Text m)]
+      par = Paragraph [text, textAfter, link]
+      text = Text
+             $ printf "The cyclomatic complexity of %m is: %d" m cc
+      textAfter = Text "For more information on cyclomatic complexity, \
+                       \please see:"
+      link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
+                     (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

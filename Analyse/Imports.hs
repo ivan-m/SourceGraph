@@ -51,12 +51,12 @@ analyseImports g exps hm = Section title elems
       elems = catMaybes
               $ map ($id) [ graphOf
                           , clustersOf g
+                          , cycleCompAnal
                           , rootAnal
                           , componentAnal
                           , cycleAnal
                           , chainAnal
                           ]
-
 
 importsToGraph          :: [ModuleName] -> HaskellModules -> ImportData
 importsToGraph exps hms = importData params
@@ -127,7 +127,7 @@ chainAnal id
       textAfter = Text "These chains can all be compressed down to \
                        \a single module."
       elem = Section title [Paragraph [text], chns', Paragraph [textAfter]]
-      title = Text "Import chain analysis of"
+      title = Text "Import chain analysis"
 
 rootAnal :: ImportData -> Maybe DocElement
 rootAnal id
@@ -148,4 +148,17 @@ rootAnal id
                      , ("in the export list but not roots",ntWd)
                      , ("not in the export list but roots",ntRs)]
       elem = Section title ps
-      title = Text "Import root analysis of"
+      title = Text "Import root analysis"
+
+cycleCompAnal    :: ImportData -> Maybe DocElement
+cycleCompAnal id = Just $ Section title [par]
+    where
+      cc = cyclomaticComplexity id
+      title = Text "Cyclomatic Complexity of imports"
+      par = Paragraph [text, textAfter, link]
+      text = Text
+             $ printf "The cyclomatic complexity of the imports is: %d" cc
+      textAfter = Text "For more information on cyclomatic complexity, \
+                       \please see:"
+      link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
+                     (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

@@ -31,6 +31,7 @@ module Analyse.Utils where
 
 import Data.Graph.Analysis
 import Data.GraphViz
+import Data.Graph.Inductive hiding (graphviz)
 
 
 -- | Defining a wrapper around String to define a sensible 'show' definition.
@@ -52,3 +53,11 @@ toClusters       :: (Show c, ClusterLabel a c) => FilePath -> String
 toClusters p t g = (p, Text t, dg)
     where
       dg = graphvizClusters t g
+
+-- | Cyclomatic complexity
+cyclomaticComplexity    :: GraphData a -> Int
+cyclomaticComplexity gd = e - n + 2*p
+    where
+      p = length $ applyAlg componentsOf gd
+      n = applyAlg noNodes gd
+      e = length $ applyAlg labEdges gd

@@ -40,6 +40,7 @@ import Distribution.Package
 import Distribution.PackageDescription hiding (author)
 import Distribution.Verbosity
 
+import Data.Char
 import Data.List
 import Data.Maybe
 import System.IO
@@ -146,8 +147,9 @@ getHaskellFilesFrom fp
 -- | Determine if this is the path of a Haskell file.
 isHaskellFile   :: FilePath -> Bool
 isHaskellFile f = (takeExtension f) `elem` haskellExtensions
-    where
-      haskellExtensions = map (extSeparator :) ["hs","lhs"]
+
+haskellExtensions :: [FilePath]
+haskellExtensions = map (extSeparator :) ["hs","lhs"]
 
 -- | Read in all the files that it can.
 readFiles :: [FilePath] -> IO [FileContents]
@@ -173,11 +175,22 @@ partitionM p (x:xs) = do ~(ts,fs) <- partitionM p xs
                             then return (x:ts,fs)
                             else return (ts,x:fs)
 
--- | Trivial paths are the current directory and the parent directory.
-isTrivial      :: FilePath -> Bool
-isTrivial "."  = True
-isTrivial ".." = True
-isTrivial _    = False
+-- | Trivial paths are the current directory, the parent directory and
+--   such directories
+isTrivial          :: FilePath -> Bool
+isTrivial "."      = True
+isTrivial ".."     = True
+isTrivial "_darcs" = True
+isTrivial "dist"   = True
+isTrivial "Pandoc.hs" = True
+isTrivial f | isSetup f = True
+isTrivial _        = False
+
+lowerCase :: String -> String
+lowerCase = map toLower
+
+isSetup   :: String -> Bool
+isSetup f = lowerCase f `elem` (map ("setup" <.>) haskellExtensions)
 
 -- -----------------------------------------------------------------------------
 

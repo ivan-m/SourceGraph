@@ -78,7 +78,7 @@ data ModuleName = M (Maybe String) String
                   deriving (Eq, Ord)
 
 instance ClusterLabel ModuleName String where
-    cluster (M p _) = fromMaybe "" p
+    cluster (M p _) = fromMaybe "Root directory" p
     nodelabel (M _ m) = m
 
 -- | The seperator between components of a module.
@@ -171,11 +171,11 @@ functionLookup fl f = M.lookup k fl
 lookupFunctions    :: FunctionLookup -> [Function] -> [Function]
 lookupFunctions fl = catMaybes . map (functionLookup fl)
 
-type FunctionCalls = Map Function [Function]
+type FunctionCalls = [(Function,[Function])]
 
 -- | Get every function call as a pair.
 functionEdges :: FunctionCalls -> [(Function,Function)]
-functionEdges = concatMap mkEdges . M.assocs
+functionEdges = concatMap mkEdges
     where
       mkEdges (f,fs) = map ((,) f) fs
 
@@ -184,8 +184,8 @@ functionEdges = concatMap mkEdges . M.assocs
 
 -- | Gets the functions
 functionsIn :: FunctionCalls -> [Function]
-functionsIn = M.keys
+functionsIn = map fst
 
 -- | Combine multiple function calls
 combineCalls :: [FunctionCalls] -> FunctionCalls
-combineCalls = M.unions
+combineCalls = concat

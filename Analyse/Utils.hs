@@ -46,13 +46,13 @@ instance Show AString where
 toGraph       :: (Show a) => FilePath -> String -> AGr a -> DocGraph
 toGraph p t g = (p,Text t,dg)
     where
-      dg = graphviz t g
+      dg = graphviz t g [maximumSize]
 
 toClusters       :: (Show c, ClusterLabel a c) => FilePath -> String
                  -> AGr a -> DocGraph
 toClusters p t g = (p, Text t, dg)
     where
-      dg = graphvizClusters t g
+      dg = graphvizClusters t g [maximumSize]
 
 -- | Cyclomatic complexity
 cyclomaticComplexity    :: GraphData a -> Int

@@ -55,7 +55,7 @@ parseModule :: HaskellModules -> HsModule -> HaskellModule
 parseModule hm (HsModule _ md exps imp decls) = Hs { moduleName = m
                                                    , imports    = imps'
                                                    , exports    = exps'
-                                                   , functions  = fs
+                                                   , functions  = funcs
                                                    }
     where
       m = createModule' md
@@ -69,7 +69,6 @@ parseModule hm (HsModule _ md exps imp decls) = Hs { moduleName = m
             | otherwise   = defFuncs
       mainFunc = F m (nameOf main_name) Nothing
       hasMain = elem mainFunc defFuncs
-      fs = M.fromList funcs
       -- We utilise "Tying-the-knot" here to simultaneously update the
       -- lookup map as well as utilise that lookup map.
       funcs = functionCalls m fl' decls

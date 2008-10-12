@@ -9,6 +9,7 @@ License-file:        COPYRIGHT
 Copyright:           (c) Ivan Lazar Miljenovic
 Author:              Ivan Lazar Miljenovic
 Maintainer:          Ivan.Miljenovic@gmail.com
+Extra-Source-Files:  TODO
 Cabal-Version:       >= 1.2
 Build-Type:          Simple
 Tested-With:         GHC==6.8.3

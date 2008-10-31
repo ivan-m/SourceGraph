@@ -44,10 +44,10 @@ type CodeData = GraphData Function
 -- | Performs analysis of the entire codebase.
 analyseEverything :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
                   -> DocElement
-analyseEverything g exps hm = Section title elems
+analyseEverything g exps hm = Section sec elems
     where
       cd = codeToGraph exps hm
-      title = Text "Analysis of the entire codebase"
+      sec = Text "Analysis of the entire codebase"
       elems = catMaybes
               $ map ($cd) [ graphOf
                           , clustersOf g
@@ -74,22 +74,22 @@ codeToGraph exps hms = importData params
                       }
 
 graphOf    :: CodeData -> Maybe DocElement
-graphOf cd = Just $ Section title [gc]
+graphOf cd = Just $ Section sec [gc]
     where
-      title = Text "Visualisation of the entire software"
+      sec = Text "Visualisation of the entire software"
       gc = GraphImage $ applyAlg dg cd
-      dg g = toGraph "code" label g
-      label = "Software visualisation"
+      dg g = toGraph "code" lbl g
+      lbl = "Software visualisation"
 
 clustersOf      :: (RandomGen g) => g -> CodeData -> Maybe DocElement
-clustersOf g cd = Just $ Section title [text, gc, textAfter, cw, rng]
+clustersOf g cd = Just $ Section sec [text, gc, textAfter, cw, rng]
     where
-      title = Text "Visualisation of overall function calls"
+      sec = Text "Visualisation of overall function calls"
       gc = GraphImage $ applyAlg dg cd
       text = Paragraph
              [Text "Here is the current module grouping of functions:"]
-      dg gr = toClusters "codeCluster" label gr
-      label = "Module groupings"
+      dg gr = toClusters "codeCluster" lbl gr
+      lbl = "Module groupings"
       textAfter = Paragraph [Text "Here are two proposed module groupings:"]
       cw = GraphImage
            . toClusters "codeCW" "Chinese Whispers module suggestions"
@@ -101,12 +101,11 @@ clustersOf g cd = Just $ Section title [text, gc, textAfter, cw, rng]
 componentAnal :: CodeData -> Maybe DocElement
 componentAnal cd
     | single comp = Nothing
-    | otherwise   = Just elem
+    | otherwise   = Just $ Section sec [Paragraph [Text text]]
     where
       comp = applyAlg componentsOf cd
       len = length comp
-      elem = Section title [Paragraph [Text text]]
-      title = Text "Function component analysis"
+      sec = Text "Function component analysis"
       text = printf "The functions are split up into %d components.  \
                      \You may wish to consider splitting the code up \
                      \into multiple libraries." len
@@ -114,43 +113,43 @@ componentAnal cd
 cliqueAnal :: CodeData -> Maybe DocElement
 cliqueAnal cd
     | null clqs = Nothing
-    | otherwise = Just elem
+    | otherwise = Just el
     where
       clqs = applyAlg cliquesIn cd
       clqs' = map (Paragraph . return . Text . showNodes) clqs
       text = Text "The code has the following cliques:"
-      elem = Section title $ (Paragraph [text]) : clqs'
-      title = Text "Overall clique analysis"
+      el = Section sec $ (Paragraph [text]) : clqs'
+      sec = Text "Overall clique analysis"
 
 cycleAnal :: CodeData -> Maybe DocElement
 cycleAnal cd
     | null cycs = Nothing
-    | otherwise = Just elem
+    | otherwise = Just el
     where
       cycs = applyAlg uniqueCycles cd
       cycs' = map (Paragraph . return . Text . showCycle) cycs
       text = Text "The code has the following non-clique cycles:"
-      elem = Section title $ (Paragraph [text]) : cycs'
-      title = Text "Overall cycle analysis"
+      el = Section sec $ (Paragraph [text]) : cycs'
+      sec = Text "Overall cycle analysis"
 
 chainAnal :: CodeData -> Maybe DocElement
 chainAnal cd
     | null chns = Nothing
-    | otherwise = Just elem
+    | otherwise = Just el
     where
       chns = applyAlg chainsIn cd
       chns' = map (Paragraph .return . Text . showPath) chns
       text = Text "The functions have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
-      elem = Section title $
-             [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
-      title = Text "Overall chain analysis"
+      el = Section sec $
+           [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
+      sec = Text "Overall chain analysis"
 
 rootAnal :: CodeData -> Maybe DocElement
 rootAnal cd
     | asExpected = Nothing
-    | otherwise  = Just elem
+    | otherwise  = Just $ Section sec ps
     where
       (wntd, ntRs, ntWd) = classifyRoots cd
       asExpected = (null ntRs) && (null ntWd)
@@ -165,15 +164,14 @@ rootAnal cd
            $ map rpt [ ("available for use and roots",wntd)
                      , ("available for use but not roots",ntWd)
                      , ("not available for use but roots",ntRs)]
-      elem = Section title ps
-      title = Text "Import root analysis"
+      sec = Text "Import root analysis"
 
 
 cycleCompAnal    :: CodeData -> Maybe DocElement
-cycleCompAnal cd = Just $ Section title [par]
+cycleCompAnal cd = Just $ Section sec [par]
     where
       cc = cyclomaticComplexity cd
-      title = Text "Overall Cyclomatic Complexity"
+      sec = Text "Overall Cyclomatic Complexity"
       par = Paragraph [text, textAfter, link]
       text = Text
              $ printf "The overall cyclomatic complexity is: %d" cc
@@ -184,30 +182,28 @@ cycleCompAnal cd = Just $ Section title [par]
 
 
 coreAnal    :: CodeData -> Maybe DocElement
-coreAnal cd = Just elem
+coreAnal cd = Just $ Section sec [hdr, anal]
     where
       core = applyAlg coreOf cd
       p = "codeCore"
-      label = "Overall core"
+      lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \
                              \the part where all the work is actually done."]
       empMsg = Paragraph [Text "The code is a tree."]
       anal = if (isEmpty core)
              then empMsg
-             else GraphImage (toGraph p label core)
-      elem = Section title [hdr, anal]
-      title = Text "Overall Core analysis"
+             else GraphImage (toGraph p lbl core)
+      sec = Text "Overall Core analysis"
 
 
 collapseAnal    :: CodeData -> Maybe DocElement
-collapseAnal cd = Just elem
+collapseAnal cd = Just $ Section sec [hdr, gr]
     where
       gc = applyAlg collapseGraph cd
       p = "codeCollapsed"
-      label = "Collapsed view of the entire codebase"
+      lbl = "Collapsed view of the entire codebase"
       hdr = Paragraph [Text "The collapsed view of code collapses \
                             \down all cliques, cycles, chains, etc. to \
                             \make the graph tree-like." ]
-      gr = GraphImage (toGraph p label gc)
-      elem = Section title [hdr, gr]
-      title = Text "Collapsed view of the entire codebase"
+      gr = GraphImage (toGraph p lbl gc)
+      sec = Text "Collapsed view of the entire codebase"

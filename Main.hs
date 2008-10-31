@@ -89,7 +89,7 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
                      (Right gpd') -> return (Just $ parse gpd')
                      (Left _)     -> return Nothing
     where
-      parse pd = (nm, exp')
+      parse pd = (nm, exps')
           where
             cbl = packageDescription pd
             nm = pName . pkgName $ package cbl
@@ -100,13 +100,13 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
             clib = condLibrary pd
             lib = library cbl
             moduleNames = map toFilePath
-            exp | not $ null cexes = nub $ map (dropExtension . modulePath) cexes
-                | not $ null exes  = nub . map dropExtension . moduleNames $ exeModules cbl
-                | isJust clib      = moduleNames . exposedModules . condTreeData
-                                     $ fromJust clib
-                | isJust lib       = moduleNames . exposedModules $ fromJust lib
-                | otherwise        = error "No exposed modules"
-            exp' = map createModule exp
+            exps | not $ null cexes = nub $ map (dropExtension . modulePath) cexes
+                 | not $ null exes  = nub . map dropExtension . moduleNames $ exeModules cbl
+                 | isJust clib      = moduleNames . exposedModules . condTreeData
+                                      $ fromJust clib
+                 | isJust lib       = moduleNames . exposedModules $ fromJust lib
+                 | otherwise        = error "No exposed modules"
+            exps' = map createModule exps
 
 getCabalFile :: [FilePath] -> Maybe FilePath
 getCabalFile = listToMaybe . filter isCabalFile
@@ -202,10 +202,10 @@ analyseCode                :: FilePath -> String -> [ModuleName]
 analyseCode fp nm exps hms = do d <- today
                                 g <- newStdGen
                                 let dc = doc d g
-                                out <- createDocument pandocHtml dc
-                                case out of
-                                  Just fp -> success fp
-                                  Nothing -> failure
+                                docOut <- createDocument pandocHtml dc
+                                case docOut of
+                                  Just path -> success path
+                                  Nothing   -> failure
     where
       doc d g = Doc { rootDirectory = rt
                     , fileFront     = nm
@@ -220,5 +220,5 @@ analyseCode fp nm exps hms = do d <- today
       a = unwords [ "Analysed by", sv programmeName programmeVersion
                   , "using", sv "Graphalyze" version]
       c g = analyse g exps hms
-      success fp = putStrLn $ unwords ["Report generated at:",fp]
+      success fp' = putStrLn $ unwords ["Report generated at:",fp']
       failure = putErrLn "Unable to generate report"

@@ -44,19 +44,19 @@ type ImportData = GraphData ModuleName
 --   as well as a list of all modules exported.
 analyseImports :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
                -> DocElement
-analyseImports g exps hm = Section title elems
+analyseImports g exps hm = Section sec elems
     where
-      id = importsToGraph exps hm
-      title = Text "Analysis of module imports"
+      imd = importsToGraph exps hm
+      sec = Text "Analysis of module imports"
       elems = catMaybes
-              $ map ($id) [ graphOf
-                          , clustersOf g
-                          , cycleCompAnal
-                          , rootAnal
-                          , componentAnal
-                          , cycleAnal
-                          , chainAnal
-                          ]
+              $ map ($imd) [ graphOf
+                           , clustersOf g
+                           , cycleCompAnal
+                           , rootAnal
+                           , componentAnal
+                           , cycleAnal
+                           , chainAnal
+                           ]
 
 importsToGraph          :: [ModuleName] -> HaskellModules -> ImportData
 importsToGraph exps hms = importData params
@@ -67,76 +67,76 @@ importsToGraph exps hms = importData params
                       , directed      = True
                       }
 
-graphOf    :: ImportData -> Maybe DocElement
-graphOf id = Just $ Section title [gi]
+graphOf     :: ImportData -> Maybe DocElement
+graphOf imd = Just $ Section sec [gi]
     where
-      title = Text "Visualisation of imports"
-      gi = GraphImage $ applyAlg dg id
-      dg g = toGraph "imports" label g
-      label = "Import visualisation"
+      sec = Text "Visualisation of imports"
+      gi = GraphImage $ applyAlg dg imd
+      dg g = toGraph "imports" lbl g
+      lbl = "Import visualisation"
 
-clustersOf      :: (RandomGen g) => g -> ImportData -> Maybe DocElement
-clustersOf g id = Just $ Section title [text, gi, textAfter, cw, rng]
+clustersOf       :: (RandomGen g) => g -> ImportData -> Maybe DocElement
+clustersOf g imd = Just $ Section sec [text, gi, textAfter, cw, rng]
     where
-      title = Text "Visualisation of module groupings"
-      gi = GraphImage $ applyAlg dg id
+      sec = Text "Visualisation of module groupings"
+      gi = GraphImage $ applyAlg dg imd
       text = Paragraph [Text "Here is the current module groupings:"]
-      dg gr = toClusters "importCluster" label gr
-      label = "Module groupings"
+      dg gr = toClusters "importCluster" lbl gr
+      lbl = "Module groupings"
       textAfter = Paragraph [Text "Here are two proposed module groupings:"]
       cw = GraphImage
            . toClusters "importCW" "Chinese Whispers module groupings"
-           $ applyAlg (chineseWhispers g) id
+           $ applyAlg (chineseWhispers g) imd
       rng = GraphImage
             . toClusters "importRNG" "Relative Neighbourhood module groupings"
-            $ applyAlg relativeNeighbourhood id
+            $ applyAlg relativeNeighbourhood imd
 
 componentAnal :: ImportData -> Maybe DocElement
-componentAnal id
+componentAnal imd
     | single comp = Nothing
-    | otherwise   = Just elem
+    | otherwise   = Just el
     where
-      comp = applyAlg componentsOf id
+      comp = applyAlg componentsOf imd
       len = length comp
-      elem = Section title [Paragraph [Text text]]
-      title = Text "Import component analysis"
+      el = Section sec [Paragraph [Text text]]
+      sec = Text "Import component analysis"
       text = printf "The imports have %d components.  \
                      \You may wish to consider splitting the code up." len
 
 cycleAnal :: ImportData -> Maybe DocElement
-cycleAnal id
+cycleAnal imd
     | null cycs = Nothing
-    | otherwise = Just elem
+    | otherwise = Just el
     where
-      cycs = applyAlg cyclesIn id
+      cycs = applyAlg cyclesIn imd
       cycs' = map (Paragraph .return . Text . showCycle) cycs
       text = Text "The imports have the following cycles:"
       textAfter = Text "Whilst this is valid, it may make it difficult \
                        \to use in ghci, etc."
-      elem = Section title
-             $ (Paragraph [text]) : cycs' ++ [Paragraph [textAfter]]
-      title = Text "Cycle analysis of imports"
+      el = Section sec
+           $ (Paragraph [text]) : cycs' ++ [Paragraph [textAfter]]
+      sec = Text "Cycle analysis of imports"
 
 chainAnal :: ImportData -> Maybe DocElement
-chainAnal id
+chainAnal imd
     | null chns = Nothing
-    | otherwise = Just elem
+    | otherwise = Just el
     where
-      chns = applyAlg chainsIn id
+      chns = applyAlg chainsIn imd
       chns' = map (Paragraph .return . Text . showPath) chns
       text = Text "The imports have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single module."
-      elem = Section title $
-             [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
-      title = Text "Import chain analysis"
+      el = Section sec $
+           [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
+      sec = Text "Import chain analysis"
 
 rootAnal :: ImportData -> Maybe DocElement
-rootAnal id
+rootAnal imd
     | asExpected = Nothing
-    | otherwise  = Just elem
+    | otherwise  = Just $ Section sec ps
     where
-      (wntd, ntRs, ntWd) = classifyRoots id
+      (wntd, ntRs, ntWd) = classifyRoots imd
       asExpected = (null ntRs) && (null ntWd)
       rpt (s,ns) = if (null ns)
                    then Nothing
@@ -149,14 +149,13 @@ rootAnal id
            $ map rpt [ ("in the export list and roots",wntd)
                      , ("in the export list but not roots",ntWd)
                      , ("not in the export list but roots",ntRs)]
-      elem = Section title ps
-      title = Text "Import root analysis"
+      sec = Text "Import root analysis"
 
-cycleCompAnal    :: ImportData -> Maybe DocElement
-cycleCompAnal id = Just $ Section title [par]
+cycleCompAnal     :: ImportData -> Maybe DocElement
+cycleCompAnal imd = Just $ Section sec [par]
     where
-      cc = cyclomaticComplexity id
-      title = Text "Cyclomatic Complexity of imports"
+      cc = cyclomaticComplexity imd
+      sec = Text "Cyclomatic Complexity of imports"
       par = Paragraph [text, textAfter, link]
       text = Text
              $ printf "The cyclomatic complexity of the imports is: %d" cc

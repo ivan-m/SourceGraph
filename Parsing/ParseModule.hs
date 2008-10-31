@@ -115,8 +115,8 @@ parseImport hm im
       imps = if (importQualified im)
              then qImport
              else mImport ++ qImport
-      getFunctions m = map (setModule m) . getItems
-      setModule m f = F m f Nothing
+      getFunctions m' = map (setModule m') . getItems
+      setModule m' f = F m' f Nothing
       getItems = catMaybes . map getImport
       -- We only care about functions, variables, etc.
       getImport (HsIVar nm) = Just (nameOf nm)
@@ -126,11 +126,11 @@ parseImport hm im
 
 -- | Parsing the export list.
 parseExports   :: ModuleName -> [HsExportSpec] -> [Function]
-parseExports m = catMaybes . map (parseExport m)
+parseExports m = catMaybes . map parseExport
     where
       -- We only care about exported functions.
-      parseExport m (HsEVar qn) = fmap (setFuncModule m) $ hsName qn
-      parseExport _ _           = Nothing
+      parseExport (HsEVar qn) = fmap (setFuncModule m) $ hsName qn
+      parseExport _           = Nothing
 
 -- | Parse the contents of the module.  For each stand-alone function,
 --   return it along with all other known functions that it calls.
@@ -191,10 +191,10 @@ instance HsItem HsIPName where
 
 -- Qualified variables and constructors
 instance HsItem HsQName where
-    hsName (Qual mod name) = fmap (addQual (modName mod)) (hsName name)
-    hsName (UnQual name)   = hsName name
+    hsName (Qual m nm) = fmap (addQual (modName m)) (hsName nm)
+    hsName (UnQual nm) = hsName nm
     -- inbuilt special syntax, e.g. [], (,), etc.
-    hsName (Special _)     = Nothing
+    hsName (Special _) = Nothing
 
 -- Infix operators.
 instance HsItem HsQOp where
@@ -242,7 +242,7 @@ instance HsItemList HsPat where
     hsNames (HsPList pats)            = hsNames pats
     hsNames (HsPParen pat)            = hsNames pat
     hsNames (HsPRec _ pfields)        = hsNames pfields
-    hsNames (HsPAsPat name pat)       = hsName' name
+    hsNames (HsPAsPat nm pat)         = hsName' nm
                                         ++ hsNames pat
     hsNames HsPWildCard               = []
     hsNames (HsPIrrPat pat)           = hsNames pat

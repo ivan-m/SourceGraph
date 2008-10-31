@@ -186,8 +186,10 @@ coreAnal (m,fd) = Just el
       sec = Grouping [ Text "Core analysis of"
                      , Emphasis (Text m)]
 
-collapseAnal :: FunctionData -> Maybe DocElement
-collapseAnal (m,fd) = Just el
+collapseAnal        :: FunctionData -> Maybe DocElement
+collapseAnal (m,fd) = if (trivialCollapse gc)
+                      then Nothing
+                      else Just el
     where
       gc = applyAlg collapseGraph fd
       p = m ++ "_collapsed"

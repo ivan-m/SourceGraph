@@ -197,7 +197,9 @@ coreAnal cd = Just $ Section sec [hdr, anal]
 
 
 collapseAnal    :: CodeData -> Maybe DocElement
-collapseAnal cd = Just $ Section sec [hdr, gr]
+collapseAnal cd = if (trivialCollapse gc)
+                  then Nothing
+                  else Just $ Section sec [hdr, gr]
     where
       gc = applyAlg collapseGraph cd
       p = "codeCollapsed"

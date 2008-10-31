@@ -70,11 +70,11 @@ main = do input <- getArgs
                                   hms <- parseFilesFrom dir'
                                   analyseCode dir nm exps hms
 
-programName :: String
-programName = "SourceGraph"
+programmeName :: String
+programmeName = "SourceGraph"
 
-programVersion :: String
-programVersion = "0.2"
+programmeVersion :: String
+programmeVersion = "0.2"
 
 putErrLn :: String -> IO ()
 putErrLn = hPutStrLn stderr
@@ -210,10 +210,10 @@ analyseCode fp nm exps hms = do d <- today
                     , date          = d
                     , content       = c g
                     }
-      rt = fp </> programName
+      rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
       t = Grouping [Text "Analysis of", Emphasis $ Text nm]
-      a = unwords [ "Analysed by", sv programName programVersion
+      a = unwords [ "Analysed by", sv programmeName programmeVersion
                   , "using", sv "Graphalyze" version]
       c g = analyse g exps hms
       success fp = putStrLn $ unwords ["Report generated at:",fp]

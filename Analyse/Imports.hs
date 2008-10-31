@@ -36,7 +36,6 @@ import Data.Graph.Analysis
 
 import Data.Maybe
 import Text.Printf
-import System.Random
 
 type ImportData = GraphData ModuleName
 

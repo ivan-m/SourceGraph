@@ -34,12 +34,12 @@ import Analyse.Utils
 
 import Data.Graph.Analysis
 
+import Data.List
 import Data.Maybe
 import Text.Printf
 import System.Random
 
 type CodeData = GraphData Function
-
 
 -- | Performs analysis of the entire codebase.
 analyseEverything :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
@@ -140,10 +140,11 @@ chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = interiorChains cd
+      chns = filter crossModule $ interiorChains cd
+      crossModule = not . single . nub . map (inModule . label)
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath) chns
-      text = Text "The functions have the following chains:"
+      text = Text "The code has the following cross-module chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
       el = Section sec $

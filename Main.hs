@@ -38,6 +38,8 @@ import Data.Graph.Analysis.Reporting.Pandoc
 
 import Distribution.Package
 import Distribution.PackageDescription hiding (author)
+import Distribution.PackageDescription.Parse
+import Distribution.ModuleName (toFilePath)
 import Distribution.Verbosity
 
 import Data.Char
@@ -90,17 +92,19 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
       parse pd = (nm, exp')
           where
             cbl = packageDescription pd
-            nm = pkgName $ package cbl
+            nm = pName . pkgName $ package cbl
+            pName (PackageName nm') = nm'
             cexes :: [Executable]
             cexes = map (condTreeData .snd) $ condExecutables pd
             exes = executables cbl
             clib = condLibrary pd
             lib = library cbl
+            moduleNames = map toFilePath
             exp | not $ null cexes = nub $ map (dropExtension . modulePath) cexes
-                | not $ null exes  = nub . map dropExtension $ exeModules cbl
-                | isJust clib      = exposedModules . condTreeData
+                | not $ null exes  = nub . map dropExtension . moduleNames $ exeModules cbl
+                | isJust clib      = moduleNames . exposedModules . condTreeData
                                      $ fromJust clib
-                | isJust lib       = exposedModules $ fromJust lib
+                | isJust lib       = moduleNames . exposedModules $ fromJust lib
                 | otherwise        = error "No exposed modules"
             exp' = map createModule exp
 

@@ -82,8 +82,9 @@ graphOf cd = Just $ Section sec [gc]
       lbl = "Software visualisation"
 
 clustersOf      :: (RandomGen g) => g -> CodeData -> Maybe DocElement
-clustersOf g cd = Just $ Section sec [text, gc, textAfter, cw, rng]
+clustersOf g cd = Just $ Section sec [text, gc, textAfter, cw, blank, rng]
     where
+      blank = Paragraph [BlankSpace]
       sec = Text "Visualisation of overall function calls"
       gc = GraphImage $ applyAlg dg cd
       text = Paragraph

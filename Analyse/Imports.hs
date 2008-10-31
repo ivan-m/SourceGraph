@@ -91,7 +91,8 @@ cycleAnal imd
     | otherwise = Just el
     where
       cycs = applyAlg cyclesIn imd
-      cycs' = map (Paragraph .return . Text . showCycle) cycs
+      cycs' = return . Enumeration
+              $ map (Paragraph . return . Text . showCycle) cycs
       text = Text "The imports have the following cycles:"
       textAfter = Text "Whilst this is valid, it may make it difficult \
                        \to use in ghci, etc."
@@ -105,7 +106,8 @@ chainAnal imd
     | otherwise = Just el
     where
       chns = applyAlg chainsIn imd
-      chns' = map (Paragraph .return . Text . showPath) chns
+      chns' = return . Enumeration
+              $ map (Paragraph . return . Text . showPath) chns
       text = Text "The imports have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single module."

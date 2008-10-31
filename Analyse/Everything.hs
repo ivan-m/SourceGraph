@@ -117,7 +117,8 @@ cliqueAnal cd
     | otherwise = Just el
     where
       clqs = applyAlg cliquesIn cd
-      clqs' = map (Paragraph . return . Text . showNodes) clqs
+      clqs' = return . Enumeration
+              $ map (Paragraph . return . Text . showNodes) clqs
       text = Text "The code has the following cliques:"
       el = Section sec $ (Paragraph [text]) : clqs'
       sec = Text "Overall clique analysis"
@@ -128,7 +129,8 @@ cycleAnal cd
     | otherwise = Just el
     where
       cycs = applyAlg uniqueCycles cd
-      cycs' = map (Paragraph . return . Text . showCycle) cycs
+      cycs' = return . Enumeration
+              $ map (Paragraph . return . Text . showCycle) cycs
       text = Text "The code has the following non-clique cycles:"
       el = Section sec $ (Paragraph [text]) : cycs'
       sec = Text "Overall cycle analysis"
@@ -139,7 +141,8 @@ chainAnal cd
     | otherwise = Just el
     where
       chns = applyAlg chainsIn cd
-      chns' = map (Paragraph .return . Text . showPath) chns
+      chns' = return . Enumeration
+              $ map (Paragraph . return . Text . showPath) chns
       text = Text "The functions have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."

@@ -117,7 +117,8 @@ cliqueAnal (m,fd)
     | otherwise = Just el
     where
       clqs = applyAlg cliquesIn fd
-      clqs' = map (Paragraph . return . Text . showNodes) clqs
+      clqs' = return . Enumeration
+              $ map (Paragraph . return . Text . showNodes) clqs
       text = Text $ printf "The module %s has the following cliques:" m
       el = Section sec $ (Paragraph [text]) : clqs'
       sec = Grouping [ Text "Clique analysis of"
@@ -129,7 +130,8 @@ cycleAnal (m,fd)
     | otherwise = Just el
     where
       cycs = applyAlg uniqueCycles fd
-      cycs' = map (Paragraph . return . Text . showCycle) cycs
+      cycs' = return . Enumeration
+              $ map (Paragraph . return . Text . showCycle) cycs
       text = Text $ printf "The module %s has the following non-clique \
                             \cycles:" m
       el = Section sec $ (Paragraph [text]) : cycs'
@@ -142,7 +144,8 @@ chainAnal (m,fd)
     | otherwise = Just el
     where
       chns = applyAlg chainsIn fd
-      chns' = map (Paragraph . return . Text . showPath) chns
+      chns' = return . Enumeration
+              $ map (Paragraph . return . Text . showPath) chns
       text = Text $ printf "The module %s has the following chains:" m
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."

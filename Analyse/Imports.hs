@@ -42,15 +42,13 @@ type ImportData = GraphData ModuleName
 
 -- | Analyse the imports present in the software.  Takes in a random seed
 --   as well as a list of all modules exported.
-analyseImports :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
-               -> DocElement
-analyseImports g exps hm = Section sec elems
+analyseImports         :: [ModuleName] -> HaskellModules -> DocElement
+analyseImports exps hm = Section sec elems
     where
       imd = importsToGraph exps hm
       sec = Text "Analysis of module imports"
       elems = catMaybes
               $ map ($imd) [ graphOf
-                           , clustersOf g
                            , cycleCompAnal
                            , rootAnal
                            , componentAnal
@@ -74,22 +72,6 @@ graphOf imd = Just $ Section sec [gi]
       gi = GraphImage $ applyAlg dg imd
       dg g = toGraph "imports" lbl g
       lbl = "Import visualisation"
-
-clustersOf       :: (RandomGen g) => g -> ImportData -> Maybe DocElement
-clustersOf g imd = Just $ Section sec [text, gi, textAfter, cw, rng]
-    where
-      sec = Text "Visualisation of module groupings"
-      gi = GraphImage $ applyAlg dg imd
-      text = Paragraph [Text "Here is the current module groupings:"]
-      dg gr = toClusters "importCluster" lbl gr
-      lbl = "Module groupings"
-      textAfter = Paragraph [Text "Here are two proposed module groupings:"]
-      cw = GraphImage
-           . toClusters "importCW" "Chinese Whispers module groupings"
-           $ applyAlg (chineseWhispers g) imd
-      rng = GraphImage
-            . toClusters "importRNG" "Relative Neighbourhood module groupings"
-            $ applyAlg relativeNeighbourhood imd
 
 componentAnal :: ImportData -> Maybe DocElement
 componentAnal imd

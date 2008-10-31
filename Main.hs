@@ -106,12 +106,19 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
                                       $ fromJust clib
                  | isJust lib       = moduleNames . exposedModules $ fromJust lib
                  | otherwise        = error "No exposed modules"
-            exps' = map createModule exps
+            exps' = map fpToModule exps
 
 getCabalFile :: [FilePath] -> Maybe FilePath
 getCabalFile = listToMaybe . filter isCabalFile
     where
       isCabalFile f  = (takeExtension f) == (extSeparator : "cabal")
+
+fpToModule :: FilePath -> ModuleName
+fpToModule = createModule . map pSep
+    where
+      pSep c
+          | isPathSeparator c = moduleSep
+          | otherwise         = c
 
 -- -----------------------------------------------------------------------------
 

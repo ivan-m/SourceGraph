@@ -33,6 +33,8 @@ module Parsing
     , ModuleName
     , createModule
     , parseHaskell
+    -- from Parsing.Types
+    , moduleSep
     ) where
 
 import Parsing.Types

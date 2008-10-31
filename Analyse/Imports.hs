@@ -135,14 +135,14 @@ rootAnal imd
       sec = Text "Import root analysis"
 
 cycleCompAnal     :: ImportData -> Maybe DocElement
-cycleCompAnal imd = Just $ Section sec [par]
+cycleCompAnal imd = Just $ Section sec pars
     where
       cc = cyclomaticComplexity imd
       sec = Text "Cyclomatic Complexity of imports"
-      par = Paragraph [text, textAfter, link]
+      pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
              $ printf "The cyclomatic complexity of the imports is: %d" cc
       textAfter = Text "For more information on cyclomatic complexity, \
-                       \please see:"
+                       \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
                      (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

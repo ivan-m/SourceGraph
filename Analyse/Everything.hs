@@ -172,15 +172,15 @@ rootAnal cd
 
 
 cycleCompAnal    :: CodeData -> Maybe DocElement
-cycleCompAnal cd = Just $ Section sec [par]
+cycleCompAnal cd = Just $ Section sec pars
     where
       cc = cyclomaticComplexity cd
       sec = Text "Overall Cyclomatic Complexity"
-      par = Paragraph [text, textAfter, link]
+      pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
              $ printf "The overall cyclomatic complexity is: %d" cc
       textAfter = Text "For more information on cyclomatic complexity, \
-                       \please see:"
+                       \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
                      (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
 

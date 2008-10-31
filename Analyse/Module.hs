@@ -143,7 +143,7 @@ chainAnal (m,fd)
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = applyAlg chainsIn fd
+      chns = interiorChains fd
       chns' = return . Enumeration
               $ map (Paragraph . return . Text . showPath) chns
       text = Text $ printf "The module %s has the following chains:" m

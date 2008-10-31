@@ -140,7 +140,7 @@ chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = applyAlg chainsIn cd
+      chns = interiorChains cd
       chns' = return . Enumeration
               $ map (Paragraph . return . Text . showPath) chns
       text = Text "The functions have the following chains:"

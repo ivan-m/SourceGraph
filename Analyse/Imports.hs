@@ -105,7 +105,7 @@ chainAnal imd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = applyAlg chainsIn imd
+      chns = interiorChains imd
       chns' = return . Enumeration
               $ map (Paragraph . return . Text . showPath) chns
       text = Text "The imports have the following chains:"

@@ -212,7 +212,7 @@ analyseCode fp nm exps hms = do d <- today
                     , title         = t
                     , author        = a
                     , date          = d
-                    , content       = c g
+                    , content       = msg : c g
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
@@ -222,3 +222,11 @@ analyseCode fp nm exps hms = do d <- today
       c g = analyse g exps hms
       success fp' = putStrLn $ unwords ["Report generated at:",fp']
       failure = putErrLn "Unable to generate report"
+      msg = Paragraph [ Text "Please note that the source-code analysis in this\
+                             \ document is not necessarily perfect: "
+                      , Emphasis $ Text programmeName
+                      , Text " is "
+                      , Bold $ Text "not"
+                      , Text " a refactoring tool, and does not take into \
+                             \account Class declarations and record functions."
+                      ]

@@ -182,7 +182,6 @@ isTrivial "."      = True
 isTrivial ".."     = True
 isTrivial "_darcs" = True
 isTrivial "dist"   = True
-isTrivial "Pandoc.hs" = True
 isTrivial f | isSetup f = True
 isTrivial _        = False
 

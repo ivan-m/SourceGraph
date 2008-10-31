@@ -90,7 +90,7 @@ cycleAnal imd
     | otherwise = Just el
     where
       cycs = applyAlg cyclesIn imd
-      cycs' = return . Enumeration
+      cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle) cycs
       text = Text "The imports have the following cycles:"
       textAfter = Text "Whilst this is valid, it may make it difficult \
@@ -105,7 +105,7 @@ chainAnal imd
     | otherwise = Just el
     where
       chns = interiorChains imd
-      chns' = return . Enumeration
+      chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath) chns
       text = Text "The imports have the following chains:"
       textAfter = Text "These chains can all be compressed down to \

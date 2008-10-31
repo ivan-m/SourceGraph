@@ -177,17 +177,16 @@ rootAnal (m,fd)
                      , Emphasis (Text m)]
 
 coreAnal        :: FunctionData -> Maybe DocElement
-coreAnal (m,fd) = Just el
+coreAnal (m,fd) = if (isEmpty core)
+                  then Nothing
+                  else Just el
     where
       core = applyAlg coreOf fd
       p = m ++ "_core"
       lbl = unwords ["Core of", m]
       hdr = Paragraph [Text "The core of a module can be thought of as \
                              \the part where all the work is actually done."]
-      empMsg = Paragraph [Text $ printf "The module %s is a tree." m]
-      anal = if (isEmpty core)
-             then empMsg
-             else GraphImage (toGraph p lbl core)
+      anal = GraphImage (toGraph p lbl core)
       el = Section sec [hdr, anal]
       sec = Grouping [ Text "Core analysis of"
                      , Emphasis (Text m)]

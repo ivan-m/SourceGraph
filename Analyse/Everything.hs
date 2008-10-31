@@ -186,17 +186,16 @@ cycleCompAnal cd = Just $ Section sec [par]
 
 
 coreAnal    :: CodeData -> Maybe DocElement
-coreAnal cd = Just $ Section sec [hdr, anal]
+coreAnal cd = if (isEmpty core)
+              then Nothing
+              else Just $ Section sec [hdr, anal]
     where
       core = applyAlg coreOf cd
       p = "codeCore"
       lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \
                              \the part where all the work is actually done."]
-      empMsg = Paragraph [Text "The code is a tree."]
-      anal = if (isEmpty core)
-             then empMsg
-             else GraphImage (toGraph p lbl core)
+      anal = GraphImage (toGraph p lbl core)
       sec = Text "Overall Core analysis"
 
 

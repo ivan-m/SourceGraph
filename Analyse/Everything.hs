@@ -163,11 +163,11 @@ rootAnal cd
                                [Text
                                 $ concat ["These functions are those that are "
                                          , s, ":"]]
-                             , Paragraph [Text $ showNodes ns]]
+                             , Paragraph [Emphasis . Text $ showNodes ns]]
       ps = concat . catMaybes
            $ map rpt [ ("available for use and roots",wntd)
-                     , ("available for use but not roots",ntWd)
-                     , ("not available for use but roots",ntRs)]
+                     , ("available for use but not roots",ntRs)
+                     , ("not available for use but roots",ntWd)]
       sec = Text "Import root analysis"
 
 

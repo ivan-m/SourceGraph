@@ -127,11 +127,11 @@ rootAnal imd
                                [Text
                                 $ concat ["These modules are those that are "
                                          , s, ":"]]
-                             , Paragraph [Text $ showNodes ns]]
+                             , Paragraph [Emphasis . Text $ showNodes ns]]
       ps = concat . catMaybes
            $ map rpt [ ("in the export list and roots",wntd)
-                     , ("in the export list but not roots",ntWd)
-                     , ("not in the export list but roots",ntRs)]
+                     , ("in the export list but not roots",ntRs)
+                     , ("not in the export list but roots",ntWd)]
       sec = Text "Import root analysis"
 
 cycleCompAnal     :: ImportData -> Maybe DocElement

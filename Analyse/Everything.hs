@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of the entire overall piece of software.
  -}
-module Analyse.Everything where
+module Analyse.Everything (analyseEverything) where
 
 import Parsing.Types
 import Analyse.Utils

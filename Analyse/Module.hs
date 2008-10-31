@@ -51,14 +51,16 @@ type FunctionData = (String, GraphData AString)
 -- | Performs analysis of all modules present in the 'HaskellModules' provided.
 analyseModules :: HaskellModules -> DocElement
 analyseModules = Section (Text "Analysis of each module")
-                 . map analyseModule . hModulesIn
+                 . catMaybes . map analyseModule . hModulesIn
 
 -- | Performs analysis of the given 'HaskellModule'.
-analyseModule    :: HaskellModule -> DocElement
-analyseModule hm = Section sec elems
+analyseModule    :: HaskellModule -> Maybe DocElement
+analyseModule hm = if (n > 1)
+                   then Just $  Section sec elems
+                   else Nothing
     where
       m = show $ moduleName hm
-      fd = moduleToGraph hm
+      (n,fd) = moduleToGraph hm
       elems = catMaybes
               $ map ($fd) [ graphOf
                           , collapseAnal
@@ -74,9 +76,10 @@ analyseModule hm = Section sec elems
                      , Emphasis (Text m)]
 
 -- | Convert the module to the /Graphalyze/ format.
-moduleToGraph    :: HaskellModule -> FunctionData
-moduleToGraph hm = (show $ moduleName hm, fd')
+moduleToGraph    :: HaskellModule -> (Int,FunctionData)
+moduleToGraph hm = (n,(show $ moduleName hm, fd'))
     where
+      n = applyAlg noNodes fd'
       fd' = manipulateNodes (AS . name) fd
       fd = importData params
       funcs = functions hm

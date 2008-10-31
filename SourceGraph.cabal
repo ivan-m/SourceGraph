@@ -32,6 +32,6 @@ Executable SourceGraph {
     else
        Build-Depends:   base < 3
 
-    Build-Depends:      fgl, Graphalyze >= 0.4, graphviz >= 2008.9.20,
+    Build-Depends:      fgl, Graphalyze >= 0.5, graphviz >= 2008.9.20,
                         Cabal >= 1.6, Cabal < 1.7, haskell-src-exts >= 0.3
 }

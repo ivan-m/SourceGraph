@@ -207,12 +207,14 @@ analyseCode fp nm exps hms = do d <- today
                                   Just path -> success path
                                   Nothing   -> failure
     where
-      doc d g = Doc { rootDirectory = rt
-                    , fileFront     = nm
-                    , title         = t
-                    , author        = a
-                    , date          = d
-                    , content       = msg : c g
+      graphdir = "graphs"
+      doc d g = Doc { rootDirectory  = rt
+                    , fileFront      = nm
+                    , graphDirectory = graphdir
+                    , title          = t
+                    , author         = a
+                    , date           = d
+                    , content        = msg : c g
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"

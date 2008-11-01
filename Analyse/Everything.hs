@@ -82,7 +82,8 @@ graphOf cd = Just $ Section sec [gc]
       lbl = "Software visualisation"
 
 clustersOf      :: (RandomGen g) => g -> CodeData -> Maybe DocElement
-clustersOf g cd = Just $ Section sec [text, gc, textAfter, cw, blank, rng]
+clustersOf g cd = Just $ Section sec [ text, gc, textAfter
+                                     , blank, cwMsg, cw, blank, rngMsg, rng]
     where
       blank = Paragraph [BlankSpace]
       sec = Text "Visualisation of overall function calls"
@@ -92,9 +93,11 @@ clustersOf g cd = Just $ Section sec [text, gc, textAfter, cw, blank, rng]
       dg gr = toClusters "codeCluster" lbl gr
       lbl = "Module groupings"
       textAfter = Paragraph [Text "Here are two proposed module groupings:"]
+      cwMsg = Paragraph [Emphasis $ Text "Using the Chinese Whispers algorithm:"]
       cw = GraphImage
            . toClusters "codeCW" "Chinese Whispers module suggestions"
            $ applyAlg (chineseWhispers g) cd
+      rngMsg = Paragraph [Emphasis $ Text "Using the Relative Neighbourhood algorithm:"]
       rng = GraphImage
             . toClusters "codeRNG" "Relative Neighbourhood module suggestions"
             $ applyAlg relativeNeighbourhood cd

@@ -1,9 +1,6 @@
 TODO for SourceGraph
 ====================
 
-* Have a way of showing small graphs in the all-in-one file
-  that then link to larger graphs.
-
 * Let users choose output directory
 
 * Let users choose output format
@@ -11,6 +8,7 @@ TODO for SourceGraph
 * Have a "just draw the graph" option
 
 * "Smarter" analysis: don't show compressed if its boring, etc.
+  -- Mainly done, could possibly be smarter
 
 * Write a README
 

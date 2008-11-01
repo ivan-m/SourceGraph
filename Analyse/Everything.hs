@@ -116,10 +116,10 @@ cliqueAnal cd
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = applyAlg cliquesIn cd
+      clqs = onlyCrossModule $ applyAlg cliquesIn cd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes) clqs
-      text = Text "The code has the following cliques:"
+      text = Text "The code has the following cross-module cliques:"
       el = Section sec $ (Paragraph [text]) : clqs'
       sec = Text "Overall clique analysis"
 
@@ -128,10 +128,10 @@ cycleAnal cd
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = applyAlg uniqueCycles cd
+      cycs = onlyCrossModule $ applyAlg uniqueCycles cd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle) cycs
-      text = Text "The code has the following non-clique cycles:"
+      text = Text "The code has the following cross-module non-clique cycles:"
       el = Section sec $ (Paragraph [text]) : cycs'
       sec = Text "Overall cycle analysis"
 
@@ -140,8 +140,7 @@ chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = filter crossModule $ interiorChains cd
-      crossModule = not . single . nub . map (inModule . label)
+      chns = onlyCrossModule $ interiorChains cd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath) chns
       text = Text "The code has the following cross-module chains:"
@@ -213,3 +212,9 @@ collapseAnal cd = if (trivialCollapse gc)
                             \make the graph tree-like." ]
       gr = GraphImage (toGraph p lbl gc)
       sec = Text "Collapsed view of the entire codebase"
+
+-- | Only use those values that are in more than one module.
+onlyCrossModule :: [LNGroup Function] -> [LNGroup Function]
+onlyCrossModule = filter crossModule
+    where
+      crossModule = not . single . nub . map (inModule . label)

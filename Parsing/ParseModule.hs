@@ -51,12 +51,12 @@ import qualified Data.Map as M
    At the moment, parsing works only on stand-alone functions, i.e. no
    data structures, class declarations or instance declarations.
  -}
-parseModule :: HaskellModules -> HsModule -> HaskellModule
-parseModule hm (HsModule _ md exps imp decls) = Hs { moduleName = m
-                                                   , imports    = imps'
-                                                   , exports    = exps'
-                                                   , functions  = funcs
-                                                   }
+parseModule :: HaskellModules -> Module -> HaskellModule
+parseModule hm (Module _ md _ _ exps imp decls) = Hs { moduleName = m
+                                                     , imports    = imps'
+                                                     , exports    = exps'
+                                                     , functions  = funcs
+                                                     }
     where
       m = createModule' md
       (imps,fl) = parseImports hm imp
@@ -76,13 +76,13 @@ parseModule hm (HsModule _ md exps imp decls) = Hs { moduleName = m
       flInternal = createLookup defFuncs
       fl' = M.union fl flInternal
 
--- | Create the 'ModuleName'.
-createModule' :: Module -> ModuleName
+-- | Create the 'ModName'.
+createModule' :: ModuleName -> ModName
 createModule' = createModule . modName
 
 -- | Parse all import declarations, and create the 'FunctionLookup' map
 --   on the imports.
-parseImports       :: HaskellModules -> [HsImportDecl]
+parseImports       :: HaskellModules -> [ImportDecl]
                    -> ([HsImport],FunctionLookup)
 parseImports hm is = (is', flookup)
     where
@@ -91,7 +91,7 @@ parseImports hm is = (is', flookup)
 
 -- | Convert the import declaration.  Assumes that all functions imported
 --   are indeed valid.
-parseImport :: HaskellModules -> HsImportDecl -> Maybe HsImport
+parseImport :: HaskellModules -> ImportDecl -> Maybe HsImport
 parseImport hm im
     | not (M.member m hm) = Nothing -- This module isn't available.
     | otherwise           = Just $ I m qual imps
@@ -119,34 +119,34 @@ parseImport hm im
       setModule m' f = F m' f Nothing
       getItems = catMaybes . map getImport
       -- We only care about functions, variables, etc.
-      getImport (HsIVar nm) = Just (nameOf nm)
+      getImport (IVar nm) = Just (nameOf nm)
       getImport _           = Nothing
 
 
 
 -- | Parsing the export list.
-parseExports   :: ModuleName -> [HsExportSpec] -> [Function]
+parseExports   :: ModName -> [ExportSpec] -> [Function]
 parseExports m = catMaybes . map parseExport
     where
       -- We only care about exported functions.
-      parseExport (HsEVar qn) = fmap (setFuncModule m) $ hsName qn
+      parseExport (EVar qn) = fmap (setFuncModule m) $ hsName qn
       parseExport _           = Nothing
 
 -- | Parse the contents of the module.  For each stand-alone function,
 --   return it along with all other known functions that it calls.
-functionCalls         :: ModuleName -> FunctionLookup -> [HsDecl]
+functionCalls         :: ModName -> FunctionLookup -> [Decl]
                       -> [(Function, [Function])]
 functionCalls m fl ds = catMaybes $ map (functionCall m fl) ds
 
 -- | Parse an individual 'HsDecl'.  We only parse 'HsFunBind' and 'HsPatBind'
 --   declarations, as they're the only ones that define stand-alone functions.
-functionCall :: ModuleName -> FunctionLookup -> HsDecl
+functionCall :: ModName -> FunctionLookup -> Decl
              -> Maybe (Function, [Function])
-functionCall m fl d@(HsFunBind {}) = fmap (flip (,) calls) nm
+functionCall m fl d@FunBind{} = fmap (flip (,) calls) nm
     where
       nm = listToMaybe . setFuncModules m $ functionNames d
       calls = lookupFunctions fl $ hsNames d
-functionCall m fl d@(HsPatBind {}) = fmap (flip (,) calls) nm
+functionCall m fl d@PatBind{} = fmap (flip (,) calls) nm
     where
       nm = listToMaybe . setFuncModules m $ functionNames d
       calls = lookupFunctions fl $ hsNames d
@@ -157,8 +157,8 @@ functionCall _ _ _ = Nothing
 -- Utility functions.
 
 -- | Extract the actual name of the 'Module'.
-modName            :: Module -> String
-modName (Module m) = m
+modName            :: ModuleName -> String
+modName (ModuleName m) = m
 
 -- | A true list-difference function.  The default '\\\\' function only deletes
 --   the first instance of each value, this deletes /all/ of them.
@@ -173,46 +173,46 @@ addQual q f = f { qualdBy = Just q }
 
 -- | Parsing of names, identifiers, etc.
 
-nameOf              :: HsName -> String
-nameOf (HsIdent  i) = i
-nameOf (HsSymbol s) = s
+nameOf              :: Name -> String
+nameOf (Ident  i) = i
+nameOf (Symbol s) = s
 
 -- The class of parsed items which represent a single element.
 class HsItem f where
     hsName :: f -> Maybe Function
 
-instance HsItem HsName where
+instance HsItem Name where
     hsName nm = Just $ defFunc (nameOf nm)
 
 -- Implicit parameters
-instance HsItem HsIPName where
-    hsName (HsIPDup v) = Just $ defFunc v
-    hsName (HsIPLin v) = Just $ defFunc v
+instance HsItem IPName where
+    hsName (IPDup v) = Just $ defFunc v
+    hsName (IPLin v) = Just $ defFunc v
 
 -- Qualified variables and constructors
-instance HsItem HsQName where
+instance HsItem QName where
     hsName (Qual m nm) = fmap (addQual (modName m)) (hsName nm)
     hsName (UnQual nm) = hsName nm
     -- inbuilt special syntax, e.g. [], (,), etc.
     hsName (Special _) = Nothing
 
 -- Infix operators.
-instance HsItem HsQOp where
-    hsName (HsQVarOp qn) = hsName qn
-    hsName (HsQConOp qn) = hsName qn
+instance HsItem QOp where
+    hsName (QVarOp qn) = hsName qn
+    hsName (QConOp qn) = hsName qn
 
 -- Operators in infix declarations
-instance HsItem HsOp where
-    hsName (HsVarOp nm) = hsName nm
-    hsName (HsConOp nm) = hsName nm
+instance HsItem Op where
+    hsName (VarOp nm) = hsName nm
+    hsName (ConOp nm) = hsName nm
 
 -- Items in import statements
-instance HsItem HsCName where
-    hsName (HsVarName nm) = hsName nm
-    hsName (HsConName nm) = hsName nm
+instance HsItem CName where
+    hsName (VarName nm) = hsName nm
+    hsName (ConName nm) = hsName nm
 
 -- We don't care about literals
-instance HsItem HsLiteral where
+instance HsItem Literal where
     hsName _ = Nothing
 
 -------------------------------------------------------------------------------
@@ -231,76 +231,74 @@ hsName' i = maybeToList (hsName i)
 instance (HsItemList vs) => HsItemList [vs] where
     hsNames vss = concatMap hsNames vss
 
-instance HsItemList HsPat where
-    hsNames (HsPVar var)              = hsName' var
-    hsNames (HsPLit _)                = []
-    hsNames (HsPNeg pat)              = hsNames pat
-    hsNames (HsPInfixApp pat1 _ pat2) = (hsNames pat1)
+instance HsItemList Pat where
+    hsNames (PVar var)              = hsName' var
+    hsNames (PLit _)                = []
+    hsNames (PNeg pat)              = hsNames pat
+    hsNames (PInfixApp pat1 _ pat2) = (hsNames pat1)
                                         ++ (hsNames pat2)
-    hsNames (HsPApp _ pats)           = hsNames pats
-    hsNames (HsPTuple pats)           = hsNames pats
-    hsNames (HsPList pats)            = hsNames pats
-    hsNames (HsPParen pat)            = hsNames pat
-    hsNames (HsPRec _ pfields)        = hsNames pfields
-    hsNames (HsPAsPat nm pat)         = hsName' nm
+    hsNames (PApp _ pats)           = hsNames pats
+    hsNames (PTuple pats)           = hsNames pats
+    hsNames (PList pats)            = hsNames pats
+    hsNames (PParen pat)            = hsNames pat
+    hsNames (PRec _ pfields)        = hsNames pfields
+    hsNames (PAsPat nm pat)         = hsName' nm
                                         ++ hsNames pat
-    hsNames HsPWildCard               = []
-    hsNames (HsPIrrPat pat)           = hsNames pat
+    hsNames PWildCard               = []
+    hsNames (PIrrPat pat)           = hsNames pat
     -- Ignore HaRP and Hsx extensions for now
     hsNames _                         = []
 
-instance HsItemList HsPatField where
-    hsNames (HsPFieldPat _ pat) = hsNames pat
+instance HsItemList PatField where
+    hsNames (PFieldPat _ pat) = hsNames pat
 
-instance HsItemList HsBinds where
-    hsNames (HsBDecls dcls) = hsNames dcls
-    hsNames (HsIPBinds ibs) = hsNames ibs
+instance HsItemList Binds where
+    hsNames (BDecls dcls) = hsNames dcls
+    hsNames (IPBinds ibs) = hsNames ibs
 
-instance HsItemList HsExp where
-    hsNames (HsVar qn)                = hsName' qn
-    hsNames (HsIPVar ip)              = hsName' ip
-    hsNames (HsCon _)                 = []
-    hsNames (HsLit _)                 = []
-    hsNames (HsInfixApp e1 q e2)      = hsName' q
+instance HsItemList Exp where
+    hsNames (Var qn)                = hsName' qn
+    hsNames (IPVar ip)              = hsName' ip
+    hsNames (Con _)                 = []
+    hsNames (Lit _)                 = []
+    hsNames (InfixApp e1 q e2)      = hsName' q
                                         ++ hsNames e1 ++ hsNames e2
-    hsNames (HsApp e1 e2)             = hsNames e1 ++ hsNames e2
-    hsNames (HsNegApp e)              = hsNames e
-    hsNames (HsLambda _ ps e)         = (hsNames e) `diff` (hsNames ps)
-    hsNames (HsLet bs e)              = (hsNames bs ++ hsNames e)
+    hsNames (App e1 e2)             = hsNames e1 ++ hsNames e2
+    hsNames (NegApp e)              = hsNames e
+    hsNames (Lambda _ ps e)         = (hsNames e) `diff` (hsNames ps)
+    hsNames (Let bs e)              = (hsNames bs ++ hsNames e)
                                         `diff` (functionNames bs)
-    hsNames (HsDLet ips e)            = (hsNames ips ++ hsNames e)
-                                        `diff` (functionNames ips)
-    hsNames (HsWith e ips)            = (hsNames ips ++ hsNames e)
-                                        `diff` (functionNames ips)
-    hsNames (HsIf i t e)              = hsNames [i,t,e]
-    hsNames (HsCase e as)             = hsNames e ++ hsNames as
-    hsNames (HsDo stmts)              = hsNames stmts
-    hsNames (HsMDo stmts)             = hsNames stmts
-    hsNames (HsTuple es)              = hsNames es
-    hsNames (HsList es)               = hsNames es
-    hsNames (HsParen e)               = hsNames e
-    hsNames (HsLeftSection e qop)     = hsNames e ++ hsName' qop
-    hsNames (HsRightSection qop e)    = hsNames e ++ hsName' qop
-    hsNames (HsRecConstr _ flds)      = hsNames flds
-    hsNames (HsRecUpdate e flds)      = hsNames e ++ hsNames flds
-    hsNames (HsEnumFrom f)            = hsNames f
-    hsNames (HsEnumFromTo f t)        = hsNames [f,t]
-    hsNames (HsEnumFromThen f th)     = hsNames [f,th]
-    hsNames (HsEnumFromThenTo f th t) = hsNames [f,th,t]
-    hsNames (HsListComp e stmts)      = let svars = functionNames stmts
-                                            e' = hsNames e ++ hsNames stmts
-                                        in e' `diff` svars
-    hsNames (HsExpTypeSig _ e _)      = hsNames e
-    hsNames (HsAsPat _ _)             = [] -- something for FunctionNames?
-    hsNames (HsIrrPat _)              = []
+    hsNames (If i t e)              = hsNames [i,t,e]
+    hsNames (Case e as)             = hsNames e ++ hsNames as
+    hsNames (Do stmts)              = hsNames stmts
+    hsNames (MDo stmts)             = hsNames stmts
+    hsNames (Tuple es)              = hsNames es
+    hsNames (TupleSection _)        = [] -- TODO
+    hsNames (List es)               = hsNames es
+    hsNames (Paren e)               = hsNames e
+    hsNames (LeftSection e qop)     = hsNames e ++ hsName' qop
+    hsNames (RightSection qop e)    = hsNames e ++ hsName' qop
+    hsNames (RecConstr _ flds)      = hsNames flds
+    hsNames (RecUpdate e flds)      = hsNames e ++ hsNames flds
+    hsNames (EnumFrom f)            = hsNames f
+    hsNames (EnumFromTo f t)        = hsNames [f,t]
+    hsNames (EnumFromThen f th)     = hsNames [f,th]
+    hsNames (EnumFromThenTo f th t) = hsNames [f,th,t]
+{-  Need a FuncitonNames instance for QualStmt
+    hsNames (ListComp e stmts)      = let svars = functionNames stmts
+                                          e' = hsNames e ++ hsNames stmts
+                                      in e' `diff` svars
+-}
+    hsNames (ParComp _ _)           = [] -- TODO
+    hsNames (ExpTypeSig _ e _)      = hsNames e
     -- For now, ignore HaRP, TH and Hsx stuff
     hsNames _                         = []
 
-instance HsItemList HsFieldUpdate where
-    hsNames (HsFieldUpdate _ e) = hsNames e
+instance HsItemList FieldUpdate where
+    hsNames (FieldUpdate _ e) = hsNames e
 
-instance HsItemList HsAlt where
-    hsNames (HsAlt _ pats rhs bnds) = (rhs' ++ bnds')
+instance HsItemList Alt where
+    hsNames (Alt _ pats rhs bnds) = (rhs' ++ bnds')
                                       `diff` (lhs ++ bndNames)
         where
           lhs = hsNames pats
@@ -308,19 +306,19 @@ instance HsItemList HsAlt where
           bnds' = hsNames bnds
           rhs' = hsNames rhs
 
-instance HsItemList HsGuardedAlts where
-    hsNames (HsUnGuardedAlt e) = hsNames e
-    hsNames (HsGuardedAlts gas) = hsNames gas
+instance HsItemList GuardedAlts where
+    hsNames (UnGuardedAlt e) = hsNames e
+    hsNames (GuardedAlts gas) = hsNames gas
 
-instance HsItemList HsGuardedAlt where
-    hsNames (HsGuardedAlt _ stmts e) = e' `diff` svars
+instance HsItemList GuardedAlt where
+    hsNames (GuardedAlt _ stmts e) = e' `diff` svars
         where
           svars = functionNames stmts
           e' = hsNames e ++ hsNames stmts
 
-instance HsItemList HsDecl where
-    hsNames (HsFunBind ms)          = hsNames ms
-    hsNames (HsPatBind _ _ rhs bds) = (bds' ++ rhs') `diff` rNames
+instance HsItemList Decl where
+    hsNames (FunBind ms)            = hsNames ms
+    hsNames (PatBind _ _ _ rhs bds) = (bds' ++ rhs') `diff` rNames
         where
           rNames = functionNames bds
           bds' = hsNames bds
@@ -328,8 +326,8 @@ instance HsItemList HsDecl where
     hsNames _                       = []
 
 
-instance HsItemList HsMatch where
-    hsNames (HsMatch _ _ pats rhs bnds) = (rhs' ++ bnds')
+instance HsItemList Match where
+    hsNames (Match _ _ pats _ rhs bnds) = (rhs' ++ bnds')
                                           `diff` (lhs ++ bndNames)
         where
           lhs = hsNames pats
@@ -337,23 +335,23 @@ instance HsItemList HsMatch where
           bnds' = hsNames bnds
           rhs' = hsNames rhs
 
-instance HsItemList HsRhs where
-    hsNames (HsUnGuardedRhs e) = hsNames e
-    hsNames (HsGuardedRhss rs) = hsNames rs
+instance HsItemList Rhs where
+    hsNames (UnGuardedRhs e) = hsNames e
+    hsNames (GuardedRhss rs) = hsNames rs
 
-instance HsItemList HsGuardedRhs where
-    hsNames (HsGuardedRhs _ stmts e) = e' `diff` svars
+instance HsItemList GuardedRhs where
+    hsNames (GuardedRhs _ stmts e) = e' `diff` svars
         where
           svars = functionNames stmts
           e' = hsNames e ++ hsNames stmts
 
-instance HsItemList HsStmt where
-    hsNames (HsGenerator _ _ e) = hsNames e
-    hsNames (HsQualifier e)     = hsNames e
-    hsNames (HsLetStmt bnds)    = hsNames bnds
+instance HsItemList Stmt where
+    hsNames (Generator _ _ e) = hsNames e
+    hsNames (Qualifier e)     = hsNames e
+    hsNames (LetStmt bnds)    = hsNames bnds
 
-instance HsItemList HsIPBind where
-    hsNames (HsIPBind _ ip e) = e' `diff` ip'
+instance HsItemList IPBind where
+    hsNames (IPBind _ ip e) = e' `diff` ip'
         where
           ip' = hsName' ip
           e' = hsNames e
@@ -367,22 +365,22 @@ class FunctionNames fn where
 instance (FunctionNames fn) => FunctionNames [fn] where
     functionNames = concatMap functionNames
 
-instance FunctionNames HsStmt where
-    functionNames (HsGenerator _ p _) = hsNames p
-    functionNames (HsQualifier _)     = []
-    functionNames (HsLetStmt bnds)    = functionNames bnds
+instance FunctionNames Stmt where
+    functionNames (Generator _ p _) = hsNames p
+    functionNames (Qualifier _)     = []
+    functionNames (LetStmt bnds)    = functionNames bnds
 
-instance FunctionNames HsMatch where
-    functionNames (HsMatch _ nm _ _ _) = hsName' nm
+instance FunctionNames Match where
+    functionNames (Match _ nm _ _ _ _) = hsName' nm
 
-instance FunctionNames HsDecl where
-    functionNames (HsFunBind ms)      = functionNames ms
-    functionNames (HsPatBind _ p _ _) = hsNames p
+instance FunctionNames Decl where
+    functionNames (FunBind ms)        = functionNames ms
+    functionNames (PatBind _ p _ _ _) = hsNames p
     functionNames _                   = []
 
-instance FunctionNames HsBinds where
-    functionNames (HsBDecls decls) = functionNames decls
-    functionNames (HsIPBinds bnds) = functionNames bnds
+instance FunctionNames Binds where
+    functionNames (BDecls decls) = functionNames decls
+    functionNames (IPBinds bnds) = functionNames bnds
 
-instance FunctionNames HsIPBind where
-    functionNames (HsIPBind _ ipn _) = hsName' ipn
+instance FunctionNames IPBind where
+    functionNames (IPBind _ ipn _) = hsName' ipn

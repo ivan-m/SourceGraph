@@ -43,23 +43,23 @@ import Control.Arrow(first)
 -- -----------------------------------------------------------------------------
 
 -- | A high-level viewpoint of a Haskell module.
-data HaskellModule = Hs { moduleName :: ModuleName
-                        , imports    :: [ModuleName]
+data HaskellModule = Hs { moduleName :: ModName
+                        , imports    :: [ModName]
                         , exports    :: [Function]
                         , functions  :: FunctionCalls
                         }
 
 -- | A lookup-map of 'HaskellModule's.
-type HaskellModules = Map ModuleName HaskellModule
+type HaskellModules = Map ModName HaskellModule
 
 -- | Create the 'HaskellModules' lookup map from a list of 'HaskellModule's.
 createModuleMap :: [HaskellModule] -> HaskellModules
 createModuleMap = M.fromList . map (\m -> (moduleName m, m))
 
-modulesIn :: HaskellModules -> [ModuleName]
+modulesIn :: HaskellModules -> [ModName]
 modulesIn = M.keys
 
-moduleImports :: HaskellModules -> [(ModuleName,ModuleName)]
+moduleImports :: HaskellModules -> [(ModName,ModName)]
 moduleImports = concatMap mkEdges . M.assocs
     where
       mkEdges (m,hm) = map ((,) m) $ imports hm
@@ -67,19 +67,21 @@ moduleImports = concatMap mkEdges . M.assocs
 hModulesIn :: HaskellModules -> [HaskellModule]
 hModulesIn = M.elems
 
-getModule      :: HaskellModules -> ModuleName -> Maybe HaskellModule
+getModule      :: HaskellModules -> ModName -> Maybe HaskellModule
 getModule hm m = M.lookup m hm
 
 -- -----------------------------------------------------------------------------
 
 -- | The name of a module.  The 'Maybe' component refers to the possible path
 --   of this module.
-data ModuleName = M (Maybe String) String
-                  deriving (Eq, Ord)
+data ModName = M (Maybe String) String
+               deriving (Eq, Ord)
 
-instance ClusterLabel ModuleName String where
+{-
+instance ClusterLabel ModName String where
     cluster (M p _) = fromMaybe "Root directory" p
     nodelabel (M _ m) = m
+-}
 
 -- | The seperator between components of a module.
 moduleSep :: Char
@@ -97,25 +99,25 @@ addPath "" m  = m
 addPath p  "" = p
 addPath p  m  = p ++ (moduleSep : m)
 
-instance Show ModuleName where
+instance Show ModName where
     show (M Nothing m)    = m
     show (M (Just dir) m) = addPath dir m
 
--- | Create the 'ModuleName' from its 'String' representation.
-createModule :: String -> ModuleName
+-- | Create the 'ModName' from its 'String' representation.
+createModule :: String -> ModName
 createModule m = case (splitMod m) of
                    (m',"") -> M Nothing m'
                    (d,m')  -> M (Just d) m'
 
 -- | A default module, used for when you haven't specified which module
 --   something belongs to yet.
-unknownModule :: ModuleName
+unknownModule :: ModName
 unknownModule = M Nothing "Module Not Found"
 
 -- -----------------------------------------------------------------------------
 
 -- | The import list of a module.
-data HsImport = I { fromModule :: ModuleName
+data HsImport = I { fromModule :: ModName
                   -- | How the module was imported, if it actually was.
                   , qualAs     :: Maybe String
                   -- | The functions from this module that were imported.
@@ -125,7 +127,7 @@ data HsImport = I { fromModule :: ModuleName
 -- -----------------------------------------------------------------------------
 
 -- | Defines a function.
-data Function = F { inModule :: ModuleName
+data Function = F { inModule :: ModName
                   , name     :: String
                   , qualdBy  :: Maybe String
                   }
@@ -134,20 +136,22 @@ data Function = F { inModule :: ModuleName
 instance Show Function where
     show f = addPath (show $ inModule f) (name f)
 
-instance ClusterLabel Function ModuleName where
+{-
+instance ClusterLabel Function ModName where
     cluster = inModule
     nodelabel = name
+-}
 
 -- | Create a default function with using 'unknownModule'.
 defFunc   :: String -> Function
 defFunc f = F unknownModule f Nothing
 
 -- | Set the module of this function.
-setFuncModule     :: ModuleName -> Function -> Function
+setFuncModule     :: ModName -> Function -> Function
 setFuncModule m f = f { inModule = m }
 
 -- | Set the module of these functions.
-setFuncModules :: ModuleName -> [Function] -> [Function]
+setFuncModules :: ModName -> [Function] -> [Function]
 setFuncModules m = map (setFuncModule m)
 
 -- | Defines a lookup map between the used qualifier and function name,

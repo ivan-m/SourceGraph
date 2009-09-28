@@ -169,10 +169,10 @@ entityAttributes rs ls ex a mm (_,e@(Ent m n t))
       isL = e `S.member` ls
       isE = e `S.member` ex
       cl | isR && not isE = "red"
-         | isR              = "mediumblue"
-         | isL              = "forestgreen"
-         | otherwise           = "black"
-      sh | isE     = "gold"
+         | isR            = "mediumblue"
+         | isL            = "forestgreen"
+         | otherwise      = "black"
+      sh | isE       = "gold"
          | otherwise = "bisque"
       sameMod = maybe True ((==) m) mm
 
@@ -274,9 +274,9 @@ drawModules dg = graphvizClusters' dg
 mCol :: IntSet -> IntSet -> IntSet -> Node -> String
 mCol rs ls es n
     | isR && not isE = "red"
-    | isR              = "mediumblue"
-    | isL              = "forestgreen"
-    | otherwise           = "black"
+    | isR            = "mediumblue"
+    | isL            = "forestgreen"
+    | otherwise      = "black"
     where
       isR = n `I.member` rs
       isL = n `I.member` ls

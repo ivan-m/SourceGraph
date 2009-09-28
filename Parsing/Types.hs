@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 {-
-Copyright (C) 2008 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
+Copyright (C) 2009 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
 
 This file is part of SourceGraph.
 

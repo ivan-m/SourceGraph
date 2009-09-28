@@ -1,5 +1,5 @@
 {-
-Copyright (C) 2008 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
+Copyright (C) 2009 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 {- |
    Module      : Main
    Description : Analyse source code as a graph.
-   Copyright   : (c) Ivan Lazar Miljenovic 2008
+   Copyright   : (c) Ivan Lazar Miljenovic 2009
    License     : GPL-3 or later.
    Maintainer  : Ivan.Miljenovic@gmail.com
 

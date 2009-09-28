@@ -61,6 +61,11 @@ import System.Environment(getArgs)
 import Control.Monad(liftM)
 import Control.Exception.Extensible(SomeException(..), try)
 
+import Data.Version(showVersion)
+import qualified Paths_SourceGraph as Paths(version)
+
+-- -----------------------------------------------------------------------------
+
 main :: IO ()
 main = do input <- getArgs
           let mcbl = getCabalFile input
@@ -84,7 +89,7 @@ programmeName :: String
 programmeName = "SourceGraph"
 
 programmeVersion :: String
-programmeVersion = "0.3"
+programmeVersion = showVersion Paths.version
 
 putErrLn :: String -> IO ()
 putErrLn = hPutStrLn stderr

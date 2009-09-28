@@ -97,7 +97,7 @@ cycleAnal imd
     where
       cycs = applyAlg cyclesIn imd
       cycs' = return . Itemized
-              $ map (Paragraph . return . Text . showCycle) cycs
+              $ map (Paragraph . return . Text . showCycle' (nameOfModule' . snd)) cycs
       text = Text "The imports have the following cycles:"
       textAfter = Text "Whilst this is valid, it may make it difficult \
                        \to use in ghci, etc."
@@ -112,7 +112,7 @@ chainAnal imd
     where
       chns = interiorChains imd
       chns' = return . Itemized
-              $ map (Paragraph . return . Text . showPath) chns
+              $ map (Paragraph . return . Text . showPath' (nameOfModule . snd)) chns
       text = Text "The imports have the following chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single module."
@@ -133,7 +133,7 @@ rootAnal imd
                                [Text
                                 $ concat ["These modules are those that are "
                                          , s, ":"]]
-                             , Paragraph [Emphasis . Text $ showNodes ns]]
+                             , Paragraph [Emphasis . Text . showNodes' nameOfModule $ map snd ns]]
       ps = concat
            $ mapMaybe rpt [ ("in the export list and roots",wntd)
                           , ("in the export list but not roots",ntRs)

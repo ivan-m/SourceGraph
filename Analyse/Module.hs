@@ -62,8 +62,7 @@ analyseModule hm = if n > 1
                    then Just $ Section sec elems
                    else Nothing
     where
-      m = show $ moduleName hm
-      (n,fd) = moduleToGraph hm
+      (n,fd@(m,_,_)) = moduleToGraph hm
       elems = mapMaybe ($fd) [ graphOf
                              -- , collapseAnal
                              , coreAnal
@@ -119,7 +118,7 @@ cliqueAnal (n,_,fd)
     where
       clqs = applyAlg cliquesIn fd
       clqs' = return . Itemized
-              $ map (Paragraph . return . Text . showNodes) clqs
+              $ map (Paragraph . return . Text . showNodes' (name . snd)) clqs
       text = Text $ printf "The module %s has the following cliques:" n
       el = Section sec $ Paragraph [text] : clqs'
       sec = Grouping [ Text "Clique analysis of"
@@ -132,7 +131,7 @@ cycleAnal (n,_,fd)
     where
       cycs = applyAlg uniqueCycles fd
       cycs' = return . Itemized
-              $ map (Paragraph . return . Text . showCycle) cycs
+              $ map (Paragraph . return . Text . showCycle' (name . snd)) cycs
       text = Text $ printf "The module %s has the following non-clique \
                             \cycles:" n
       el = Section sec $ Paragraph [text] : cycs'
@@ -146,7 +145,7 @@ chainAnal (n,_,fd)
     where
       chns = interiorChains fd
       chns' = return . Itemized
-              $ map (Paragraph . return . Text . showPath) chns
+              $ map (Paragraph . return . Text . showPath' (name . snd)) chns
       text = Text $ printf "The module %s has the following chains:" n
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
@@ -168,7 +167,7 @@ rootAnal (n,_,fd)
                                [Text
                                 $ concat ["These nodes are those that are "
                                          , s, ":"]]
-                             , Paragraph [Emphasis . Text $ showNodes ns]]
+                             , Paragraph [Emphasis . Text . showNodes' name $ map snd ns]]
       ps = concat
            $ mapMaybe rpt [ ("in the export list and roots",wntd)
                           , ("in the export list but not roots",ntRs)

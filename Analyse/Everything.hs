@@ -125,7 +125,7 @@ cliqueAnal cd
     where
       clqs = onlyCrossModule $ applyAlg cliquesIn cd
       clqs' = return . Itemized
-              $ map (Paragraph . return . Text . showNodes) clqs
+              $ map (Paragraph . return . Text . showNodes' (fullName . snd)) clqs
       text = Text "The code has the following cross-module cliques:"
       el = Section sec $ Paragraph [text] : clqs'
       sec = Text "Overall clique analysis"
@@ -137,7 +137,7 @@ cycleAnal cd
     where
       cycs = onlyCrossModule $ applyAlg uniqueCycles cd
       cycs' = return . Itemized
-              $ map (Paragraph . return . Text . showCycle) cycs
+              $ map (Paragraph . return . Text . showCycle' (fullName . snd)) cycs
       text = Text "The code has the following cross-module non-clique cycles:"
       el = Section sec $ Paragraph [text] : cycs'
       sec = Text "Overall cycle analysis"
@@ -149,7 +149,7 @@ chainAnal cd
     where
       chns = onlyCrossModule $ interiorChains cd
       chns' = return . Itemized
-              $ map (Paragraph . return . Text . showPath) chns
+              $ map (Paragraph . return . Text . showPath' (fullName . snd)) chns
       text = Text "The code has the following cross-module chains:"
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
@@ -170,7 +170,7 @@ rootAnal cd
                                [Text
                                 $ concat ["These functions are those that are "
                                          , s, ":"]]
-                             , Paragraph [Emphasis . Text $ showNodes ns]]
+                             , Paragraph [Emphasis . Text . showNodes' fullName $ map snd ns]]
       ps = concat
            $ mapMaybe rpt [ ("available for use and roots",wntd)
                           , ("available for use but not roots",ntRs)

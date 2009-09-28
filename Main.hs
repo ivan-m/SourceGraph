@@ -39,7 +39,7 @@ import Data.Graph.Analysis.Reporting.Pandoc
 import Distribution.Package
 import Distribution.PackageDescription hiding (author)
 import Distribution.PackageDescription.Parse
-import Distribution.ModuleName (toFilePath)
+import Distribution.ModuleName(toFilePath)
 import Distribution.Verbosity
 
 import Data.Char
@@ -51,7 +51,7 @@ import System.FilePath
 import System.Random
 import System.Environment
 import Control.Monad
-import Control.Exception
+import Control.Exception.Extensible(SomeException(..), try)
 
 main :: IO ()
 main = do input <- getArgs
@@ -83,11 +83,11 @@ putErrLn = hPutStrLn stderr
 
 -- -----------------------------------------------------------------------------
 
-parseCabal    :: FilePath -> IO (Maybe (String, [ModuleName]))
+parseCabal    :: FilePath -> IO (Maybe (String, [ModName]))
 parseCabal fp = do gpd <- try $ readPackageDescription silent fp
                    case gpd of
-                     (Right gpd') -> return (Just $ parse gpd')
-                     (Left _)     -> return Nothing
+                     (Right gpd')           -> return (Just $ parse gpd')
+                     (Left SomeException{}) -> return Nothing
     where
       parse pd = (nm, exps')
           where
@@ -113,7 +113,7 @@ getCabalFile = listToMaybe . filter isCabalFile
     where
       isCabalFile f  = (takeExtension f) == (extSeparator : "cabal")
 
-fpToModule :: FilePath -> ModuleName
+fpToModule :: FilePath -> ModName
 fpToModule = createModule . map pSep
     where
       pSep c
@@ -123,7 +123,7 @@ fpToModule = createModule . map pSep
 -- -----------------------------------------------------------------------------
 
 -- | Recursively parse all files from this directory
-parseFilesFrom    :: FilePath -> IO HaskellModules
+parseFilesFrom    :: FilePath -> IO ParsedModules
 parseFilesFrom fp = do files <- getHaskellFilesFrom fp
                        cnts <- readFiles files
                        return $ parseHaskell cnts
@@ -139,8 +139,8 @@ getHaskellFilesFrom fp
          if isDir
             then do r <- try getFilesIn -- Ensure we can read the directory.
                     case r of
-                      (Right fs) -> return fs
-                      (Left _)   -> return []
+                      (Right fs)             -> return fs
+                      (Left SomeException{}) -> return []
             else return []
     where
       -- Filter out "." and ".." to stop infinite recursion.
@@ -170,8 +170,8 @@ readFiles = liftM catMaybes . mapM readFileContents
 readFileContents   :: FilePath -> IO (Maybe FileContents)
 readFileContents f = do cnts <- try $ readFile f
                         case cnts of
-                          (Right str) -> return $ Just (f,str)
-                          (Left _)    -> return Nothing
+                          (Right str)            -> return $ Just (f,str)
+                          (Left SomeException{}) -> return Nothing
 
 -- | A version of 'concatMap' for use in monads.
 concatMapM   :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
@@ -204,8 +204,8 @@ isSetup f = lowerCase f `elem` (map ("setup" <.>) haskellExtensions)
 
 -- -----------------------------------------------------------------------------
 
-analyseCode                :: FilePath -> String -> [ModuleName]
-                           -> HaskellModules -> IO ()
+analyseCode                :: FilePath -> String -> [ModName]
+                           -> ParsedModules -> IO ()
 analyseCode fp nm exps hms = do d <- today
                                 g <- newStdGen
                                 let dc = doc d g

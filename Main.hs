@@ -196,13 +196,14 @@ partitionM p (x:xs) = do ~(ts,fs) <- partitionM p xs
 
 -- | Trivial paths are the current directory, the parent directory and
 --   such directories
-isTrivial          :: FilePath -> Bool
-isTrivial "."      = True
-isTrivial ".."     = True
-isTrivial "_darcs" = True
-isTrivial "dist"   = True
+isTrivial               :: FilePath -> Bool
+isTrivial "."           = True
+isTrivial ".."          = True
+isTrivial "_darcs"      = True
+isTrivial "dist"        = True
+isTrivial "HLInt.hs"    = True
 isTrivial f | isSetup f = True
-isTrivial _        = False
+isTrivial _             = False
 
 lowerCase :: String -> String
 lowerCase = map toLower

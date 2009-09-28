@@ -38,6 +38,7 @@ import Language.Haskell.Exts.Syntax
 import Language.Haskell.Exts.Pretty
 
 import Data.Char(isUpper)
+import Data.Foldable(foldrM)
 import Data.Maybe(fromMaybe, catMaybes, fromJust)
 import qualified Data.Map as M
 import Data.Map(Map)
@@ -535,6 +536,64 @@ getExp (If i t e)  = liftM MS.unions $ mapM getExp [i,t,e]
 getExp (Case e as) = do e' <- getExp e
                         as' <-  mapM getAlt as
                         return $ MS.unions (e':as')
+getExp (Do ss) = chainedCalled $ map getStmt ss
+getExp (MDo ss) = liftM (uncurry defElsewhere') $ getStmts ss
+getExp (Tuple es) = getExps es
+getExp (TupleSection mes) = getExps $ catMaybes mes
+getExp (List es) = getExps es
+getExp (Paren e) = getExp e
+getExp (LeftSection e o) = liftM (MS.union (maybeEnt o)) $ getExp e
+getExp (RightSection o e) = liftM (MS.union (maybeEnt o)) $ getExp e
+getExp (RecConstr qn fus) = liftM (MS.union (maybeEnt qn)) $ getFUpdates fus
+getExp (RecUpdate e fus)  = liftM2 MS.union (getExp e) (getFUpdates fus)
+getExp (EnumFrom e) = getExp e
+getExp (EnumFromTo e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (EnumFromThen e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (EnumFromThenTo e1 e2 e3) = liftM2 MS.union (getExp e1)
+                                   $ liftM2 MS.union (getExp e2) (getExp e3)
+getExp (ListComp e qss) = liftM2 MS.union (getExp e) $ getQStmts qss
+getExp (ParComp e qsss) = liftM2 MS.union (getExp e) . liftM MS.unions
+                          $ mapM getQStmts qsss
+getExp (ExpTypeSig _ e _) = getExp e
+getExp (VarQuote qn) = return $ maybeEnt qn
+getExp (Proc p e) = do (pd,pc) <- getPat p
+                       c <- getExp e
+                       return $ pc `MS.union` defElsewhere c pd
+getExp (RightArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (LeftArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (RightArrHighApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (LeftArrHighApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+-- Everything else is TH, XML or Pragmas
+getExp _ = return MS.empty
+
+getExps :: [Exp] -> PState Called
+getExps = liftM MS.unions . mapM getExp
+
+chainedCalled :: [PState DefCalled] -> PState Called
+chainedCalled = foldrM go MS.empty
+    where
+      go s cs = liftM (rmVars cs) s
+      rmVars cs (d,c) = defElsewhere cs d `MS.union` c
+
+getQStmt                      :: QualStmt -> PState DefCalled
+getQStmt (QualStmt s)         = getStmt s
+getQStmt (ThenTrans e)        = liftM noDefs $ getExp e
+getQStmt (ThenBy e1 e2)       = liftM noDefs $ liftM2 MS.union (getExp e1) (getExp e2)
+getQStmt (GroupBy e)          = liftM noDefs $ getExp e
+getQStmt (GroupUsing e)       = liftM noDefs $ getExp e
+getQStmt (GroupByUsing e1 e2) = liftM noDefs
+                                $ liftM2 MS.union (getExp e1) (getExp e2)
+
+getQStmts :: [QualStmt] -> PState Called
+getQStmts = chainedCalled . map getQStmt
+
+getFUpdates :: [FieldUpdate] -> PState Called
+getFUpdates = liftM MS.unions . mapM getFUpdate
+
+getFUpdate                    :: FieldUpdate -> PState Called
+getFUpdate (FieldUpdate qn e) = liftM (MS.union (maybeEnt qn)) $ getExp e
+getFUpdate (FieldPun n)       = return . MS.singleton $ nameOf' n
+getFUpdate _                  = return MS.empty
 
 getAlt                  :: Alt -> PState Called
 getAlt (Alt _ p gas bs) = do (pd,pc) <- getPat p

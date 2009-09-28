@@ -138,11 +138,11 @@ listedEnt _  _  IAbs{}            = []
 listedEnt pm _  (IThingAll n)     = esFrom dataDecls ++ esFrom classDecls
                                     -- one will be empty
     where
-      esFrom f = M.elems $ f pm M.! nameOf n
+      esFrom f = maybe [] M.elems $ M.lookup (nameOf n) (f pm)
 listedEnt pm _  (IThingWith n cs) = esFrom dataDecls ++ esFrom classDecls
     where
-      el f = f pm M.! nameOf n
-      esFrom f = map (lookupEntity' (el f) . nameOf) cs
+      el f = M.lookup (nameOf n) $ f pm
+      esFrom = maybe [] (\lk -> map (lookupEntity' lk . nameOf) cs) . el
 
 -- -----------------------------------------------------------------------------
 -- Exports
@@ -170,7 +170,9 @@ listedExp _  _  EAbs{}              = []
 listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
                                       -- one will be empty
     where
-      esFrom f = maybe [] (M.elems . (M.!) (f pm) . snd) $ qName qn
+      -- A bit ugly...
+      esFrom f = maybe [] (maybe [] M.elems . flip M.lookup (f pm) . snd)
+                 $ qName qn
 listedExp pm _  (EThingWith qn cs)  = esFrom dataDecls ++ esFrom classDecls
     where
       esFrom f = fromMaybe [] $ do mn <- fmap snd $ qName qn

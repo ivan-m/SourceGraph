@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 {- |
    Module      : Parsing
    Description : Parse the given Haskell modules.
-   Copyright   : (c) Ivan Lazar Miljenovic 2008
+   Copyright   : (c) Ivan Lazar Miljenovic 2009
    License     : GPL-3 or later.
    Maintainer  : Ivan.Miljenovic@gmail.com
 
@@ -29,8 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Parsing
     ( FileContents
-    , HaskellModules
-    , ModuleName
+    , ParsedModules
+    , ModName
     , createModule
     , parseHaskell
     -- from Parsing.Types
@@ -40,17 +40,20 @@ module Parsing
 import Parsing.Types
 import Parsing.ParseModule
 
-import Language.Haskell.Exts.Parser hiding (parseModule)
-import Language.Haskell.Exts.Syntax(HsModule)
+import Language.Haskell.Exts(parseFileContentsWithMode)
+import Language.Haskell.Exts.Parser( ParseMode(..)
+                                   , ParseResult(..)
+                                   , defaultParseMode)
+import Language.Haskell.Exts.Syntax(Module)
 
-import Data.Maybe
+import Data.Maybe(catMaybes)
 
 type FileContents = (FilePath,String)
 
 -- | Parse all the files and return the map.
 --   This uses laziness to evaluate the 'HaskellModules' result
 --   whilst also using it to parse all the modules to create it.
-parseHaskell    :: [FileContents] -> HaskellModules
+parseHaskell    :: [FileContents] -> ParsedModules
 parseHaskell fc = hms
     where
       ms = parseFiles fc
@@ -58,13 +61,13 @@ parseHaskell fc = hms
       hss = map (parseModule hms) ms
 
 -- | Attempt to parse an individual file.
-parseFile       :: FileContents -> Maybe HsModule
-parseFile (p,f) = case (parseModuleWithMode mode f) of
+parseFile       :: FileContents -> Maybe Module
+parseFile (p,f) = case (parseFileContentsWithMode mode f) of
                     (ParseOk hs) -> Just hs
                     _            -> Nothing
     where
-      mode = ParseMode p
+      mode = defaultParseMode { parseFilename = p }
 
 -- | Parse all the files that you can.
-parseFiles :: [FileContents] -> [HsModule]
+parseFiles :: [FileContents] -> [Module]
 parseFiles = catMaybes . map parseFile

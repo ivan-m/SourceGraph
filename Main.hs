@@ -42,15 +42,23 @@ import Distribution.PackageDescription.Parse
 import Distribution.ModuleName(toFilePath)
 import Distribution.Verbosity
 
-import Data.Char
-import Data.List
-import Data.Maybe
-import System.IO
-import System.Directory
-import System.FilePath
-import System.Random
-import System.Environment
-import Control.Monad
+import Data.Char(toLower)
+import Data.List(nub)
+import Data.Maybe(isJust, fromJust, listToMaybe, catMaybes)
+import System.IO(hPutStrLn, stderr)
+import System.Directory( getCurrentDirectory
+                       , doesDirectoryExist
+                       , getDirectoryContents)
+import System.FilePath( dropFileName
+                      , dropExtension
+                      , takeExtension
+                      , extSeparator
+                      , isPathSeparator
+                      , (</>)
+                      , (<.>))
+import System.Random(newStdGen)
+import System.Environment(getArgs)
+import Control.Monad(liftM)
 import Control.Exception.Extensible(SomeException(..), try)
 
 main :: IO ()
@@ -111,7 +119,7 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
 getCabalFile :: [FilePath] -> Maybe FilePath
 getCabalFile = listToMaybe . filter isCabalFile
     where
-      isCabalFile f  = (takeExtension f) == (extSeparator : "cabal")
+      isCabalFile f  = takeExtension f == extSeparator : "cabal"
 
 fpToModule :: FilePath -> ModName
 fpToModule = createModule . map pSep
@@ -157,7 +165,7 @@ getHaskellFilesFrom fp
 
 -- | Determine if this is the path of a Haskell file.
 isHaskellFile   :: FilePath -> Bool
-isHaskellFile f = (takeExtension f) `elem` haskellExtensions
+isHaskellFile f = takeExtension f `elem` haskellExtensions
 
 haskellExtensions :: [FilePath]
 haskellExtensions = map (extSeparator :) ["hs","lhs"]
@@ -200,7 +208,7 @@ lowerCase :: String -> String
 lowerCase = map toLower
 
 isSetup   :: String -> Bool
-isSetup f = lowerCase f `elem` (map ("setup" <.>) haskellExtensions)
+isSetup f = lowerCase f `elem` map ("setup" <.>) haskellExtensions
 
 -- -----------------------------------------------------------------------------
 

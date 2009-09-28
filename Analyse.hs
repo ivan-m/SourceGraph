@@ -36,7 +36,7 @@ import Parsing.Types
 
 import Data.Graph.Analysis
 
-import System.Random
+import System.Random(RandomGen)
 
 -- | Analyse an entire Haskell project.  Takes in a random seed,
 --   the list of exported modules and the parsed Haskell code in

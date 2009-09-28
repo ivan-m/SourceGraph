@@ -34,11 +34,11 @@ import Analyse.Utils
 
 import Data.Graph.Analysis
 
-import Data.Maybe
+import Data.Maybe(mapMaybe)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.MultiSet as MS
-import Text.Printf
+import Text.Printf(printf)
 
 -- -----------------------------------------------------------------------------
 
@@ -54,27 +54,26 @@ type ModuleData = (String, ModName, HSData)
 -- | Performs analysis of all modules present in the 'ParsedModules' provided.
 analyseModules :: ParsedModules -> DocElement
 analyseModules = Section (Text "Analysis of each module")
-                 . catMaybes . map analyseModule . M.elems
+                 . mapMaybe analyseModule . M.elems
 
 -- | Performs analysis of the given 'ParsedModule'.
 analyseModule    :: ParsedModule -> Maybe DocElement
-analyseModule hm = if (n > 1)
+analyseModule hm = if n > 1
                    then Just $ Section sec elems
                    else Nothing
     where
       m = show $ moduleName hm
       (n,fd) = moduleToGraph hm
-      elems = catMaybes
-              $ map ($fd) [ graphOf
-                          -- , collapseAnal
-                          , coreAnal
-                          , cycleCompAnal
-                          , rootAnal
-                          , componentAnal
-                          , cliqueAnal
-                          , cycleAnal
-                          , chainAnal
-                          ]
+      elems = mapMaybe ($fd) [ graphOf
+                             -- , collapseAnal
+                             , coreAnal
+                             , cycleCompAnal
+                             , rootAnal
+                             , componentAnal
+                             , cliqueAnal
+                             , cycleAnal
+                             , chainAnal
+                             ]
       sec = Grouping [ Text "Analysis of"
                      , Emphasis (Text m)]
 
@@ -122,7 +121,7 @@ cliqueAnal (n,_,fd)
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes) clqs
       text = Text $ printf "The module %s has the following cliques:" n
-      el = Section sec $ (Paragraph [text]) : clqs'
+      el = Section sec $ Paragraph [text] : clqs'
       sec = Grouping [ Text "Clique analysis of"
                      , Emphasis (Text n)]
 
@@ -136,7 +135,7 @@ cycleAnal (n,_,fd)
               $ map (Paragraph . return . Text . showCycle) cycs
       text = Text $ printf "The module %s has the following non-clique \
                             \cycles:" n
-      el = Section sec $ (Paragraph [text]) : cycs'
+      el = Section sec $ Paragraph [text] : cycs'
       sec = Grouping [ Text "Cycle analysis of"
                      , Emphasis (Text n)]
 
@@ -162,24 +161,24 @@ rootAnal (n,_,fd)
     | otherwise  = Just el
     where
       (wntd, ntRs, ntWd) = classifyRoots fd
-      asExpected = (null ntRs) && (null ntWd)
-      rpt (s,ns) = if (null ns)
+      asExpected = null ntRs && null ntWd
+      rpt (s,ns) = if null ns
                    then Nothing
                    else Just [ Paragraph
                                [Text
                                 $ concat ["These nodes are those that are "
                                          , s, ":"]]
                              , Paragraph [Emphasis . Text $ showNodes ns]]
-      ps = concat . catMaybes
-           $ map rpt [ ("in the export list and roots",wntd)
-                     , ("in the export list but not roots",ntRs)
-                     , ("not in the export list but roots",ntWd)]
+      ps = concat
+           $ mapMaybe rpt [ ("in the export list and roots",wntd)
+                          , ("in the export list but not roots",ntRs)
+                          , ("not in the export list but roots",ntWd)]
       el = Section sec ps
       sec = Grouping [ Text "Root analysis of"
                      , Emphasis (Text n)]
 
 coreAnal          :: ModuleData -> Maybe DocElement
-coreAnal (n,m,fd) = if (isEmpty core)
+coreAnal (n,m,fd) = if isEmpty core
                     then Nothing
                     else Just el
     where

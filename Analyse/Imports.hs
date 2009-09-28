@@ -34,9 +34,9 @@ import Analyse.Utils
 
 import Data.Graph.Analysis
 
-import Data.Maybe
+import Data.Maybe(mapMaybe)
 import qualified Data.Map as M
-import Text.Printf
+import Text.Printf(printf)
 
 -- -----------------------------------------------------------------------------
 
@@ -47,14 +47,13 @@ analyseImports exps hm = Section sec elems
     where
       imd = importsToGraph exps hm
       sec = Text "Analysis of module imports"
-      elems = catMaybes
-              $ map ($imd) [ graphOf
-                           , cycleCompAnal
-                           , rootAnal
-                           , componentAnal
-                           , cycleAnal
-                           , chainAnal
-                           ]
+      elems = mapMaybe ($imd) [ graphOf
+                              , cycleCompAnal
+                              , rootAnal
+                              , componentAnal
+                              , cycleAnal
+                              , chainAnal
+                              ]
 
 importsToGraph          :: [ModName] -> ParsedModules -> ModData
 importsToGraph exps pms = importData params
@@ -103,7 +102,7 @@ cycleAnal imd
       textAfter = Text "Whilst this is valid, it may make it difficult \
                        \to use in ghci, etc."
       el = Section sec
-           $ (Paragraph [text]) : cycs' ++ [Paragraph [textAfter]]
+           $ Paragraph [text] : cycs' ++ [Paragraph [textAfter]]
       sec = Text "Cycle analysis of imports"
 
 chainAnal :: ModData -> Maybe DocElement
@@ -127,18 +126,18 @@ rootAnal imd
     | otherwise  = Just $ Section sec ps
     where
       (wntd, ntRs, ntWd) = classifyRoots imd
-      asExpected = (null ntRs) && (null ntWd)
-      rpt (s,ns) = if (null ns)
+      asExpected = null ntRs && null ntWd
+      rpt (s,ns) = if null ns
                    then Nothing
                    else Just [ Paragraph
                                [Text
                                 $ concat ["These modules are those that are "
                                          , s, ":"]]
                              , Paragraph [Emphasis . Text $ showNodes ns]]
-      ps = concat . catMaybes
-           $ map rpt [ ("in the export list and roots",wntd)
-                     , ("in the export list but not roots",ntRs)
-                     , ("not in the export list but roots",ntWd)]
+      ps = concat
+           $ mapMaybe rpt [ ("in the export list and roots",wntd)
+                          , ("in the export list but not roots",ntRs)
+                          , ("not in the export list but roots",ntWd)]
       sec = Text "Import root analysis"
 
 cycleCompAnal     :: ModData -> Maybe DocElement

@@ -34,13 +34,13 @@ import Analyse.Utils
 
 import Data.Graph.Analysis
 
-import Data.List
-import Data.Maybe
+import Data.List(nub)
+import Data.Maybe(mapMaybe)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.MultiSet as MS
-import Text.Printf
-import System.Random
+import Text.Printf(printf)
+import System.Random(RandomGen)
 
 -- | Performs analysis of the entire codebase.
 analyseEverything :: (RandomGen g) => g -> [ModName] -> ParsedModules
@@ -49,18 +49,17 @@ analyseEverything g exps hm = Section sec elems
     where
       cd = codeToGraph exps hm
       sec = Text "Analysis of the entire codebase"
-      elems = catMaybes
-              $ map ($cd) [ graphOf
-                          , clustersOf g
-                          -- , collapseAnal
-                          , coreAnal
-                          , cycleCompAnal
-                          , rootAnal
-                          , componentAnal
-                          , cliqueAnal
-                          , cycleAnal
-                          , chainAnal
-                          ]
+      elems = mapMaybe ($cd) [ graphOf
+                             , clustersOf g
+                             -- , collapseAnal
+                             , coreAnal
+                             , cycleCompAnal
+                             , rootAnal
+                             , componentAnal
+                             , cliqueAnal
+                             , cycleAnal
+                             , chainAnal
+                             ]
 
 
 codeToGraph          :: [ModName] -> ParsedModules -> HSData
@@ -128,7 +127,7 @@ cliqueAnal cd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes) clqs
       text = Text "The code has the following cross-module cliques:"
-      el = Section sec $ (Paragraph [text]) : clqs'
+      el = Section sec $ Paragraph [text] : clqs'
       sec = Text "Overall clique analysis"
 
 cycleAnal :: HSData -> Maybe DocElement
@@ -140,7 +139,7 @@ cycleAnal cd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle) cycs
       text = Text "The code has the following cross-module non-clique cycles:"
-      el = Section sec $ (Paragraph [text]) : cycs'
+      el = Section sec $ Paragraph [text] : cycs'
       sec = Text "Overall cycle analysis"
 
 chainAnal :: HSData -> Maybe DocElement
@@ -164,18 +163,18 @@ rootAnal cd
     | otherwise  = Just $ Section sec ps
     where
       (wntd, ntRs, ntWd) = classifyRoots cd
-      asExpected = (null ntRs) && (null ntWd)
-      rpt (s,ns) = if (null ns)
+      asExpected = null ntRs && null ntWd
+      rpt (s,ns) = if null ns
                    then Nothing
                    else Just [ Paragraph
                                [Text
                                 $ concat ["These functions are those that are "
                                          , s, ":"]]
                              , Paragraph [Emphasis . Text $ showNodes ns]]
-      ps = concat . catMaybes
-           $ map rpt [ ("available for use and roots",wntd)
-                     , ("available for use but not roots",ntRs)
-                     , ("not available for use but roots",ntWd)]
+      ps = concat
+           $ mapMaybe rpt [ ("available for use and roots",wntd)
+                          , ("available for use but not roots",ntRs)
+                          , ("not available for use but roots",ntWd)]
       sec = Text "Import root analysis"
 
 
@@ -194,7 +193,7 @@ cycleCompAnal cd = Just $ Section sec pars
 
 
 coreAnal    :: HSData -> Maybe DocElement
-coreAnal cd = if (isEmpty core)
+coreAnal cd = if isEmpty core
               then Nothing
               else Just $ Section sec [hdr, anal]
     where

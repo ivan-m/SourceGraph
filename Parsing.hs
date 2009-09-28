@@ -46,7 +46,7 @@ import Language.Haskell.Exts.Parser( ParseMode(..)
                                    , defaultParseMode)
 import Language.Haskell.Exts.Syntax(Module)
 
-import Data.Maybe(catMaybes)
+import Data.Maybe(mapMaybe)
 
 type FileContents = (FilePath,String)
 
@@ -70,4 +70,4 @@ parseFile (p,f) = case (parseFileContentsWithMode mode f) of
 
 -- | Parse all the files that you can.
 parseFiles :: [FileContents] -> [Module]
-parseFiles = catMaybes . map parseFile
+parseFiles = mapMaybe parseFile

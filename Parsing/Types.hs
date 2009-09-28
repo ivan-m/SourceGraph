@@ -226,7 +226,8 @@ modulePathOf = splitSects . nameOfModule
     where
       splitSects mp = case break ((==) moduleSep) mp of
                         (p,"")      -> [p]
-                        (p,'.':mp') -> p : splitSects mp'
+                        (p,dmp) -> p : splitSects (tail dmp)
+
 
 -- | The seperator between components of a module.
 moduleSep :: Char

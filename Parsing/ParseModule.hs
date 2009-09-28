@@ -41,13 +41,10 @@ import Data.Char(isUpper)
 import Data.Foldable(foldrM)
 import Data.Maybe(fromMaybe, catMaybes, fromJust)
 import qualified Data.Map as M
-import Data.Map(Map)
 import qualified Data.Set as S
 import Data.Set(Set)
-
 import qualified Data.MultiSet as MS
-import Data.MultiSet(MultiSet,Occur)
-
+import Data.MultiSet(MultiSet)
 import Control.Arrow((***), second)
 import Control.Monad(liftM, liftM2)
 
@@ -126,11 +123,11 @@ createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
       n' = nameOf n
       cs' = map nameOf cs
       isD = isUpper . head
-      isData = any (isUpper . head) cs'
+      isDta = any (isUpper . head) cs'
       mkData c | isD c     = Constructor n'
                | otherwise = RecordFunction n' -- Nothing
       mkClass _ = ClassFunction n'
-      eT = if isData then mkData else mkClass
+      eT = if isDta then mkData else mkClass
 createEnt _  _                 = []
 
 -- | Determine the correct 'Entity' designation for the listed import item.
@@ -154,8 +151,7 @@ listedEnt pm _  (IThingWith n cs) = esFrom dataDecls ++ esFrom classDecls
 -- "main" defined, then it is defined as the export list (otherwise
 -- all top-level items are exported).
 instance ModuleItem (Maybe [ExportSpec]) where
-    parseInfo Nothing    = do mn <- getModuleName
-                              pm <- getParsedModule
+    parseInfo Nothing    = do pm <- getParsedModule
                               el <- getLookup
                               let mainFunc = M.lookup (Nothing,"main") el
                                   es = maybe (exportableEnts pm) S.singleton mainFunc
@@ -287,13 +283,13 @@ addConstructor d (RecDecl n rbs) = do m <- getModuleName
                                       let n' = nameOf n
                                           ce = Ent m n' (Constructor d)
                                           rs = map nameOf $ concatMap fst rbs
-                                          res = map (mkRe m n') rs
+                                          res = map (mkRe m) rs
                                           es = ce : res
                                           fcs = MS.fromList $ map (mkFc ce) res
                                       putParsedModule $ addFcs pm fcs
                                       return $ mkEl es
     where
-      mkRe m c r = Ent m r (RecordFunction d) -- (Just c))
+      mkRe m r = Ent m r (RecordFunction d)
       mkFc c r = FC r c RecordConstructor
       addFcs pm fcs = pm { funcCalls = fcs `MS.union` funcCalls pm }
 
@@ -459,7 +455,7 @@ getPat (PViewPat e p)      = do ec <- getExp e
                                 (pd,pc) <- getPat p
                                 return (pd, ec `MS.union` pc)
 -- HaRP... no idea now to deal with this
-getPat (PRPat prs)         = return noEnts
+getPat PRPat{}             = return noEnts
 -- !foo
 getPat (PBangPat p)        = getPat p
 -- The rest are XML and TH patterns
@@ -532,7 +528,7 @@ getExp (Lambda _ ps e) = do (pd,pc) <- getPats ps
 getExp (Let bs e) = do (bd,bc) <- getBindings bs
                        e' <- getExp e
                        return $ defElsewhere' bd (MS.union bc e')
-getExp (If i t e)  = liftM MS.unions $ mapM getExp [i,t,e]
+getExp (If i t e)  = getExps [i,t,e]
 getExp (Case e as) = do e' <- getExp e
                         as' <-  mapM getAlt as
                         return $ MS.unions (e':as')
@@ -629,14 +625,8 @@ noDefs = (,) S.empty
 maybeEnt :: (QNamed a) => a -> Called
 maybeEnt = maybe MS.empty MS.singleton . qName
 
-maybeEnt' :: (QNamed a) => a -> Defined
-maybeEnt' = maybe S.empty S.singleton . qName
-
 noEnts :: DefCalled
 noEnts = (S.empty, MS.empty)
-
-bool       :: a -> a -> Bool -> a
-bool t f b = if b then t else f
 
 -- -----------------------------------------------------------------------------
 
@@ -684,7 +674,7 @@ defElsewhere      :: Called -> Defined -> Called
 defElsewhere ms s = MS.fromMap $ fs `M.difference` ifs
     where
       fs = MS.toMap ms
-      ifs = M.fromList . map (flip (,) 1 ) $ S.toList s
+      ifs = M.fromList . map (flip (,) () ) $ S.toList s
 
 defElsewhere' :: Defined -> Called -> Called
 defElsewhere' = flip defElsewhere

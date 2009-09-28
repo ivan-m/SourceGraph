@@ -89,9 +89,6 @@ get = PS (\s -> (s,s))
 put   :: ModuleParsing -> PState ()
 put s = PS (const ((), s))
 
-evalState   :: PState value -> ModuleParsing -> value
-evalState s = fst . runState s
-
 execState   :: PState value -> ModuleParsing -> ModuleParsing
 execState s = snd . runState s
 

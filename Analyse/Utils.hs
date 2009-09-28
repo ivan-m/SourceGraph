@@ -154,7 +154,7 @@ drawGraph' dg = graphvizClusters dg'
 --   'True' if add explicit module name to all entities.
 entityAttributes :: Set Entity -> Set Entity -> Set Entity -> Bool
                     -> Maybe ModName -> LNode Entity -> Attributes
-entityAttributes rs ls exp a mm (_,e@(Ent m n t))
+entityAttributes rs ls ex a mm (_,e@(Ent m n t))
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
       , Color [ColorName cl]
@@ -165,14 +165,14 @@ entityAttributes rs ls exp a mm (_,e@(Ent m n t))
       lbl = bool (nameOfModule m ++ "\\n" ++ n) n
             $ not sameMod || a
       -- Using the default X11 color names.
-      isRoot = e `S.member` rs
-      isLeaf = e `S.member` ls
-      isExp = e `S.member` exp
-      cl | isRoot && not isExp = "red"
-         | isRoot              = "mediumblue"
-         | isLeaf              = "forestgreen"
+      isR = e `S.member` rs
+      isL = e `S.member` ls
+      isE = e `S.member` ex
+      cl | isR && not isE = "red"
+         | isR              = "mediumblue"
+         | isL              = "forestgreen"
          | otherwise           = "black"
-      sh | isExp     = "gold"
+      sh | isE     = "gold"
          | otherwise = "bisque"
       sameMod = maybe True ((==) m) mm
 
@@ -273,11 +273,11 @@ drawModules dg = graphvizClusters' dg
 
 mCol :: IntSet -> IntSet -> IntSet -> Node -> String
 mCol rs ls es n
-    | isRoot && not isExp = "red"
-    | isRoot              = "mediumblue"
-    | isLeaf              = "forestgreen"
+    | isR && not isE = "red"
+    | isR              = "mediumblue"
+    | isL              = "forestgreen"
     | otherwise           = "black"
     where
-      isRoot = n `I.member` rs
-      isLeaf = n `I.member` ls
-      isExp = n `I.member` es
+      isR = n `I.member` rs
+      isL = n `I.member` ls
+      isE = n `I.member` es

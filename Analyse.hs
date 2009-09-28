@@ -41,7 +41,7 @@ import System.Random
 -- | Analyse an entire Haskell project.  Takes in a random seed,
 --   the list of exported modules and the parsed Haskell code in
 --   'HaskellModules' form.
-analyse            :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
+analyse            :: (RandomGen g) => g -> [ModName] -> ParsedModules
                    -> [DocElement]
 analyse g exps hms = [ analyseModules hms
                      , analyseImports exps hms

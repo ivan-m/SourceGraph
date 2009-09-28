@@ -35,6 +35,9 @@ import Analyse.Utils
 import Data.Graph.Analysis
 
 import Data.Maybe
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.MultiSet as MS
 import Text.Printf
 
 -- -----------------------------------------------------------------------------
@@ -42,28 +45,28 @@ import Text.Printf
 -- Helper types
 
 -- | Shorthand type
-type FunctionData = (String, GraphData AString)
+type ModuleData = (String, ModName, HSData)
 
 -- -----------------------------------------------------------------------------
 
 -- Analysing.
 
--- | Performs analysis of all modules present in the 'HaskellModules' provided.
-analyseModules :: HaskellModules -> DocElement
+-- | Performs analysis of all modules present in the 'ParsedModules' provided.
+analyseModules :: ParsedModules -> DocElement
 analyseModules = Section (Text "Analysis of each module")
-                 . catMaybes . map analyseModule . hModulesIn
+                 . catMaybes . map analyseModule . M.elems
 
--- | Performs analysis of the given 'HaskellModule'.
-analyseModule    :: HaskellModule -> Maybe DocElement
+-- | Performs analysis of the given 'ParsedModule'.
+analyseModule    :: ParsedModule -> Maybe DocElement
 analyseModule hm = if (n > 1)
-                   then Just $  Section sec elems
+                   then Just $ Section sec elems
                    else Nothing
     where
       m = show $ moduleName hm
       (n,fd) = moduleToGraph hm
       elems = catMaybes
               $ map ($fd) [ graphOf
-                          , collapseAnal
+                          -- , collapseAnal
                           , coreAnal
                           , cycleCompAnal
                           , rootAnal
@@ -76,30 +79,29 @@ analyseModule hm = if (n > 1)
                      , Emphasis (Text m)]
 
 -- | Convert the module to the /Graphalyze/ format.
-moduleToGraph    :: HaskellModule -> (Int,FunctionData)
-moduleToGraph hm = (n,(show $ moduleName hm, fd'))
+moduleToGraph    :: ParsedModule -> (Int,ModuleData)
+moduleToGraph hm = (n,(nameOfModule mn, mn, fd))
     where
-      n = applyAlg noNodes fd'
-      fd' = manipulateNodes (AS . name) fd
+      mn = moduleName hm
+      n = applyAlg noNodes fd
       fd = importData params
-      funcs = functions hm
-      params = Params { dataPoints    = functionsIn funcs
-                      , relationships = functionEdges funcs
-                      , roots         = exports hm
+      params = Params { dataPoints    = S.toList $ internalEnts hm
+                      , relationships = MS.toList . MS.map callToRel
+                                        $ funcCalls hm
+                      , roots         = S.toList $ exports hm
                       , directed      = True
                       }
 
-graphOf        :: FunctionData -> Maybe DocElement
-graphOf (m,fd) = Just $ Section sec [gi]
+graphOf          :: ModuleData -> Maybe DocElement
+graphOf (n,m,fd) = Just $ Section sec [gi]
     where
       sec = Grouping [ Text "Visualisation of"
-                     , Emphasis (Text m)]
-      gi = GraphImage $ applyAlg dg fd
-      dg g = toGraph m lbl g
-      lbl = unwords ["Diagram of:", m]
+                     , Emphasis $ Text n]
+      gi = GraphImage (n, lbl, drawGraph (Just m) fd)
+      lbl = Text $ unwords ["Diagram of:", n]
 
-componentAnal :: FunctionData -> Maybe DocElement
-componentAnal (m,fd)
+componentAnal :: ModuleData -> Maybe DocElement
+componentAnal (n,_,fd)
     | single comp = Nothing
     | otherwise   = Just el
     where
@@ -107,25 +109,25 @@ componentAnal (m,fd)
       len = length comp
       el = Section sec [Paragraph [Text text]]
       sec = Grouping [ Text "Component analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
       text = printf "The module %s has %d components.  \
-                     \You may wish to consider splitting it up." m len
+                     \You may wish to consider splitting it up." n len
 
-cliqueAnal :: FunctionData -> Maybe DocElement
-cliqueAnal (m,fd)
+cliqueAnal :: ModuleData -> Maybe DocElement
+cliqueAnal (n,_,fd)
     | null clqs = Nothing
     | otherwise = Just el
     where
       clqs = applyAlg cliquesIn fd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes) clqs
-      text = Text $ printf "The module %s has the following cliques:" m
+      text = Text $ printf "The module %s has the following cliques:" n
       el = Section sec $ (Paragraph [text]) : clqs'
       sec = Grouping [ Text "Clique analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
 
-cycleAnal :: FunctionData -> Maybe DocElement
-cycleAnal (m,fd)
+cycleAnal :: ModuleData -> Maybe DocElement
+cycleAnal (n,_,fd)
     | null cycs = Nothing
     | otherwise = Just el
     where
@@ -133,29 +135,29 @@ cycleAnal (m,fd)
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle) cycs
       text = Text $ printf "The module %s has the following non-clique \
-                            \cycles:" m
+                            \cycles:" n
       el = Section sec $ (Paragraph [text]) : cycs'
       sec = Grouping [ Text "Cycle analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
 
-chainAnal :: FunctionData -> Maybe DocElement
-chainAnal (m,fd)
+chainAnal :: ModuleData -> Maybe DocElement
+chainAnal (n,_,fd)
     | null chns = Nothing
     | otherwise = Just el
     where
       chns = interiorChains fd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath) chns
-      text = Text $ printf "The module %s has the following chains:" m
+      text = Text $ printf "The module %s has the following chains:" n
       textAfter = Text "These chains can all be compressed down to \
                        \a single function."
       el = Section sec
            $ [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       sec = Grouping [ Text "Chain analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
 
-rootAnal :: FunctionData -> Maybe DocElement
-rootAnal (m,fd)
+rootAnal :: ModuleData -> Maybe DocElement
+rootAnal (n,_,fd)
     | asExpected = Nothing
     | otherwise  = Just el
     where
@@ -174,50 +176,55 @@ rootAnal (m,fd)
                      , ("not in the export list but roots",ntWd)]
       el = Section sec ps
       sec = Grouping [ Text "Root analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
 
-coreAnal        :: FunctionData -> Maybe DocElement
-coreAnal (m,fd) = if (isEmpty core)
-                  then Nothing
-                  else Just el
+coreAnal          :: ModuleData -> Maybe DocElement
+coreAnal (n,m,fd) = if (isEmpty core)
+                    then Nothing
+                    else Just el
     where
-      core = applyAlg coreOf fd
-      p = m ++ "_core"
-      lbl = unwords ["Core of", m]
+      fd' = updateGraph coreOf fd
+      core = graph fd'
+      p = n ++ "_core"
+      lbl = Text $ unwords ["Core of", n]
       hdr = Paragraph [Text "The core of a module can be thought of as \
                              \the part where all the work is actually done."]
-      anal = GraphImage (toGraph p lbl core)
+      anal = GraphImage (p,lbl,drawGraph (Just m) fd')
       el = Section sec [hdr, anal]
       sec = Grouping [ Text "Core analysis of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
 
-collapseAnal        :: FunctionData -> Maybe DocElement
-collapseAnal (m,fd) = if (trivialCollapse gc)
-                      then Nothing
-                      else Just el
+-- Comment out until can work out a way of dealing with [Entity] for
+-- the node-label type.
+{-
+collapseAnal          :: ModuleData -> Maybe DocElement
+collapseAnal (n,m,fd) = if (trivialCollapse gc)
+                        then Nothing
+                        else Just el
     where
-      gc = applyAlg collapseGraph fd
-      p = m ++ "_collapsed"
-      lbl = unwords ["Collapsed view of", m]
+      fd' = updateGraph collapseGraph fd
+      gc = graph fd'
+      p = n ++ "_collapsed"
+      lbl = Text $ unwords ["Collapsed view of", n]
       hdr = Paragraph [Text "The collapsed view of a module collapses \
                             \down all cliques, cycles, chains, etc. to \
                             \make the graph tree-like." ]
-      gr = GraphImage (toGraph p lbl gc)
+      gr = GraphImage (p,lbl,drawGraph (Just m) fd')
       el = Section sec [hdr, gr]
       sec = Grouping [ Text "Collapsed view of"
-                     , Emphasis (Text m)]
+                     , Emphasis (Text n)]
+-}
 
-
-cycleCompAnal        :: FunctionData -> Maybe DocElement
-cycleCompAnal (m,fd) = Just $ Section sec pars
+cycleCompAnal          :: ModuleData -> Maybe DocElement
+cycleCompAnal (n,_,fd) = Just $ Section sec pars
     where
       cc = cyclomaticComplexity fd
       sec = Grouping [ Text "Cyclomatic Complexity of"
-                       , Emphasis (Text m)]
+                       , Emphasis (Text n)]
       pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
-             $ printf "The cyclomatic complexity of %s is: %d." m cc
+             $ printf "The cyclomatic complexity of %s is: %d." n cc
       textAfter = Text "For more information on cyclomatic complexity, \
                        \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
-                     (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
+                     (Web "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

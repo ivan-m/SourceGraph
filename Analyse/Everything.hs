@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of the entire overall piece of software.
  -}
-module Analyse.Everything (analyseEverything) where
+module Analyse.Everything(analyseEverything) where
 
 import Parsing.Types
 import Analyse.Utils
@@ -36,13 +36,14 @@ import Data.Graph.Analysis
 
 import Data.List
 import Data.Maybe
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.MultiSet as MS
 import Text.Printf
 import System.Random
 
-type CodeData = GraphData Function
-
 -- | Performs analysis of the entire codebase.
-analyseEverything :: (RandomGen g) => g -> [ModuleName] -> HaskellModules
+analyseEverything :: (RandomGen g) => g -> [ModName] -> ParsedModules
                   -> DocElement
 analyseEverything g exps hm = Section sec elems
     where
@@ -51,7 +52,7 @@ analyseEverything g exps hm = Section sec elems
       elems = catMaybes
               $ map ($cd) [ graphOf
                           , clustersOf g
-                          , collapseAnal
+                          -- , collapseAnal
                           , coreAnal
                           , cycleCompAnal
                           , rootAnal
@@ -62,47 +63,51 @@ analyseEverything g exps hm = Section sec elems
                           ]
 
 
-codeToGraph          :: [ModuleName] -> HaskellModules -> CodeData
-codeToGraph exps hms = importData params
+codeToGraph          :: [ModName] -> ParsedModules -> HSData
+codeToGraph exps pms = importData params
     where
-      exps' = concat . catMaybes $ map (fmap exports . getModule hms) exps
-      fl = combineCalls .map functions $ hModulesIn hms
-      params = Params { dataPoints    = functionsIn fl
-                      , relationships = functionEdges fl
+      pms' = M.elems pms
+      exps' = S.toList . S.unions
+              . map exports $ mapMaybe (flip M.lookup pms) exps
+      ents = S.toList . S.unions
+             $ map internalEnts pms'
+      calls = MS.toList . MS.map callToRel . MS.unions
+              $ map funcCalls pms'
+      params = Params { dataPoints    = ents
+                      , relationships = calls
                       , roots         = exps'
                       , directed      = True
                       }
 
-graphOf    :: CodeData -> Maybe DocElement
+graphOf    :: HSData -> Maybe DocElement
 graphOf cd = Just $ Section sec [gc]
     where
       sec = Text "Visualisation of the entire software"
-      gc = GraphImage $ applyAlg dg cd
-      dg g = toGraph "code" lbl g
-      lbl = "Software visualisation"
+      gc = GraphImage ("code", lbl, dg)
+      dg = drawGraph Nothing cd
+      lbl = Text "Entire Codebase"
 
-clustersOf      :: (RandomGen g) => g -> CodeData -> Maybe DocElement
+clustersOf      :: (RandomGen g) => g -> HSData -> Maybe DocElement
 clustersOf g cd = Just $ Section sec [ text, gc, textAfter
                                      , blank, cwMsg, cw, blank, rngMsg, rng]
     where
       blank = Paragraph [BlankSpace]
       sec = Text "Visualisation of overall function calls"
-      gc = GraphImage $ applyAlg dg cd
+      gc = GraphImage ("codeCluster", lbl, drawGraph' cd)
       text = Paragraph
              [Text "Here is the current module grouping of functions:"]
-      dg gr = toClusters "codeCluster" lbl gr
-      lbl = "Module groupings"
+      lbl = Text "Current module groupings"
       textAfter = Paragraph [Text "Here are two proposed module groupings:"]
       cwMsg = Paragraph [Emphasis $ Text "Using the Chinese Whispers algorithm:"]
-      cw = GraphImage
-           . toClusters "codeCW" "Chinese Whispers module suggestions"
-           $ applyAlg (chineseWhispers g) cd
+      cw = GraphImage ("codeCW", cwLbl, drawClusters (chineseWhispers g) cd)
+      cwLbl = Text "Chinese Whispers module suggestions"
       rngMsg = Paragraph [Emphasis $ Text "Using the Relative Neighbourhood algorithm:"]
-      rng = GraphImage
-            . toClusters "codeRNG" "Relative Neighbourhood module suggestions"
-            $ applyAlg relativeNeighbourhood cd
+      rng = GraphImage ("codeRNG", rngLbl, drawClusters relNbrhd cd)
+      -- Being naughty to avoid having to define drawClusters'
+      relNbrhd = relativeNeighbourhood $ directedData cd
+      rngLbl = Text "Relative Neighbourhood module suggestions"
 
-componentAnal :: CodeData -> Maybe DocElement
+componentAnal :: HSData -> Maybe DocElement
 componentAnal cd
     | single comp = Nothing
     | otherwise   = Just $ Section sec [Paragraph [Text text]]
@@ -114,7 +119,7 @@ componentAnal cd
                      \You may wish to consider splitting the code up \
                      \into multiple libraries." len
 
-cliqueAnal :: CodeData -> Maybe DocElement
+cliqueAnal :: HSData -> Maybe DocElement
 cliqueAnal cd
     | null clqs = Nothing
     | otherwise = Just el
@@ -126,7 +131,7 @@ cliqueAnal cd
       el = Section sec $ (Paragraph [text]) : clqs'
       sec = Text "Overall clique analysis"
 
-cycleAnal :: CodeData -> Maybe DocElement
+cycleAnal :: HSData -> Maybe DocElement
 cycleAnal cd
     | null cycs = Nothing
     | otherwise = Just el
@@ -138,7 +143,7 @@ cycleAnal cd
       el = Section sec $ (Paragraph [text]) : cycs'
       sec = Text "Overall cycle analysis"
 
-chainAnal :: CodeData -> Maybe DocElement
+chainAnal :: HSData -> Maybe DocElement
 chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
@@ -153,7 +158,7 @@ chainAnal cd
            [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       sec = Text "Overall chain analysis"
 
-rootAnal :: CodeData -> Maybe DocElement
+rootAnal :: HSData -> Maybe DocElement
 rootAnal cd
     | asExpected = Nothing
     | otherwise  = Just $ Section sec ps
@@ -174,7 +179,7 @@ rootAnal cd
       sec = Text "Import root analysis"
 
 
-cycleCompAnal    :: CodeData -> Maybe DocElement
+cycleCompAnal    :: HSData -> Maybe DocElement
 cycleCompAnal cd = Just $ Section sec pars
     where
       cc = cyclomaticComplexity cd
@@ -185,39 +190,43 @@ cycleCompAnal cd = Just $ Section sec pars
       textAfter = Text "For more information on cyclomatic complexity, \
                        \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
-                     (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
+                     (Web "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
 
 
-coreAnal    :: CodeData -> Maybe DocElement
+coreAnal    :: HSData -> Maybe DocElement
 coreAnal cd = if (isEmpty core)
               then Nothing
               else Just $ Section sec [hdr, anal]
     where
-      core = applyAlg coreOf cd
-      p = "codeCore"
-      lbl = "Overall core"
+      cd' = updateGraph coreOf cd
+      core = graph cd'
+      lbl = Text "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \
                              \the part where all the work is actually done."]
-      anal = GraphImage (toGraph p lbl core)
+      anal = GraphImage ("codeCore", lbl, drawGraph Nothing cd')
       sec = Text "Overall Core analysis"
 
 
-collapseAnal    :: CodeData -> Maybe DocElement
+-- Comment out until can work out a way of dealing with [Entity] for
+-- the node-label type.
+{-
+collapseAnal    :: HSData -> Maybe DocElement
 collapseAnal cd = if (trivialCollapse gc)
                   then Nothing
                   else Just $ Section sec [hdr, gr]
     where
-      gc = applyAlg collapseGraph cd
-      p = "codeCollapsed"
-      lbl = "Collapsed view of the entire codebase"
+      cd' = updateGraph collapseGraph cd
+      gc = graph cd'
+      lbl = Text "Collapsed view of the entire codebase"
       hdr = Paragraph [Text "The collapsed view of code collapses \
                             \down all cliques, cycles, chains, etc. to \
                             \make the graph tree-like." ]
-      gr = GraphImage (toGraph p lbl gc)
+      gr = GraphImage ("codeCollapsed", lbl, drawGraph Nothing cd')
       sec = Text "Collapsed view of the entire codebase"
+-}
 
 -- | Only use those values that are in more than one module.
-onlyCrossModule :: [LNGroup Function] -> [LNGroup Function]
+onlyCrossModule :: [LNGroup Entity] -> [LNGroup Entity]
 onlyCrossModule = filter crossModule
     where
       crossModule = not . single . nub . map (inModule . label)

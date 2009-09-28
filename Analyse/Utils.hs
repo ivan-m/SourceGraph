@@ -29,34 +29,255 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Analyse.Utils where
 
-import Data.Graph.Analysis
+import Parsing.Types
+
+import Data.Graph.Analysis hiding (Bold)
 import Data.Graph.Inductive hiding (graphviz)
 
+import Data.GraphViz
 
--- | Defining a wrapper around String to define a sensible 'show' definition.
-newtype AString = AS String
-    deriving (Eq, Ord)
+import Data.List(groupBy, sortBy)
+import Data.Maybe(isJust)
+import Data.Function(on)
+import qualified Data.Set as S
+import Data.Set(Set)
+import qualified Data.IntSet as I
+import Data.IntSet(IntSet)
 
-instance Show AString where
-    show (AS f) = f
+-- -----------------------------------------------------------------------------
 
--- | Create a graph in the 'DocGraph' format.
---   Takes in the filepath, title and the graph to be drawn.
-toGraph       :: (Show a) => FilePath -> String -> AGr a -> DocGraph
-toGraph p t g = (p,Text t,dg)
-    where
-      dg = graphviz t g
+type HSData = GraphData Entity CallType
+type HSClustData = GraphData (GenCluster Entity) CallType
+type HSGraph = AGr Entity CallType
+type HSClustGraph = AGr (GenCluster Entity) CallType
 
-toClusters       :: (Show c, ClusterLabel a c) => FilePath -> String
-                 -> AGr a -> DocGraph
-toClusters p t g = (p, Text t, dg)
-    where
-      dg = graphvizClusters t g
+type ModData = GraphData ModName ()
+type ModGraph = AGr ModName ()
+
+-- -----------------------------------------------------------------------------
 
 -- | Cyclomatic complexity
-cyclomaticComplexity    :: GraphData a -> Int
+cyclomaticComplexity    :: GraphData a b -> Int
 cyclomaticComplexity gd = e - n + 2*p
     where
       p = length $ applyAlg componentsOf gd
       n = applyAlg noNodes gd
       e = length $ applyAlg labEdges gd
+
+-- | Collapse items that must be kept together before clustering, etc.
+collapseStructures :: HSData -> HSData
+collapseStructures = updateGraph collapseStructures'
+
+collapseStructures' :: HSGraph -> HSGraph
+collapseStructures' = collapseGraphBy' [ collapseDatas
+                                       , collapseClasses
+                                       , collapseInsts
+                                       ]
+    where
+      collapseDatas = mkCollapseTp isData getDataType mkData
+      mkData m d = Ent m ("Data: " ++ d) (CollapsedData d)
+      collapseClasses = mkCollapseTp isClass getClassName mkClass
+      mkClass m c = Ent m ("Class: " ++ c) (CollapsedClass c)
+      collapseInsts = mkCollapseTp isInstance getInstance mkInst
+      mkInst m (c,d) = Ent m ("Class: " ++ c ++ "\\nData: " ++ d)
+                             (CollapsedInstance c d)
+
+
+mkCollapseTp           :: (Ord a) => (EntityType -> Bool) -> (EntityType -> a)
+                          -> (ModName -> a -> Entity) -> HSGraph
+                          -> [(NGroup, Entity)]
+mkCollapseTp p v mkE g = map lng2ne lngs
+    where
+      lns = filter (p . eType . snd) $ labNodes g
+      lnas = map addA lns
+      lngs = groupSortBy snd lnas
+      lng2ne lng = ( map (fst . fst) lng
+                   , mkEnt $ head lng
+                   )
+      mkEnt ((_,e),a) = mkE (inModule e) a
+      addA ln@(_,l) = (ln, v $ eType l)
+
+groupSortBy   :: (Ord b) => (a -> b) -> [a] -> [[a]]
+groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
+
+toSet :: (Ord a) => LNGroup a -> Set a
+toSet = S.fromList . map snd
+
+getRoots :: (Ord a) => GraphData a b -> Set a
+getRoots = toSet . applyAlg rootsOf
+
+getLeaves :: (Ord a) => GraphData a b -> Set a
+getLeaves = toSet . applyAlg leavesOf
+
+getWRoots :: (Ord a) => GraphData a b -> Set a
+getWRoots = toSet . wantedRoots
+
+bool       :: a -> a -> Bool -> a
+bool t f b = if b then t else f
+
+-- -----------------------------------------------------------------------------
+
+-- | Create the nested 'DotGraph'.
+drawGraph       :: Maybe ModName -> HSData -> DotGraph Node
+drawGraph mm dg = graphvizClusters' dg'
+                                    gAttrs
+                                    toClust
+                                    (const Nothing)
+                                    clustAttributes'
+                                    nAttr
+                                    callAttributes'
+    where
+      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      dg' = updateGraph compactSame dg
+      toClust = bool clusterEntity clusterEntityM' $ isJust mm
+      rs = getRoots dg
+      ls = getLeaves dg
+      es = getWRoots dg
+      nAttr = entityAttributes rs ls es False mm
+
+-- | One-module-per-cluster 'DotGraph'
+drawGraph'    :: HSData -> DotGraph Node
+drawGraph' dg = graphvizClusters dg'
+                                 gAttrs
+                                 modClustAttrs
+                                 nAttr
+                                 callAttributes'
+    where
+      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      dg' = updateGraph (compactSame . collapseStructures') dg
+      rs = getRoots dg
+      ls = getLeaves dg
+      es = getWRoots dg
+      nAttr = entityAttributes rs ls es False Nothing
+
+-- | GetRoots, GetLeaves, Exported, @'Just' m@ if only one module, @'Nothing'@ if all.
+--   'True' if add explicit module name to all entities.
+entityAttributes :: Set Entity -> Set Entity -> Set Entity -> Bool
+                    -> Maybe ModName -> LNode Entity -> Attributes
+entityAttributes rs ls exp a mm (_,e@(Ent m n t))
+    = [ Label $ StrLabel lbl
+      , Shape $ shapeFor t
+      , Color [ColorName cl]
+      , BgColor $ ColorName sh
+      , Style [SItem Filled [], styleFor mm m]
+      ]
+    where
+      lbl = bool (nameOfModule m ++ "\\n" ++ n) n
+            $ not sameMod || a
+      -- Using the default X11 color names.
+      isRoot = e `S.member` rs
+      isLeaf = e `S.member` ls
+      isExp = e `S.member` exp
+      cl | isRoot && not isExp = "red"
+         | isRoot              = "mediumblue"
+         | isLeaf              = "forestgreen"
+         | otherwise           = "black"
+      sh | isExp     = "gold"
+         | otherwise = "bisque"
+      sameMod = maybe True ((==) m) mm
+
+shapeFor                     :: EntityType -> Shape
+shapeFor Constructor{}       = Box3D
+shapeFor RecordFunction{}    = Component
+shapeFor ClassFunction{}     = DoubleOctagon
+shapeFor DefaultInstance{}   = Octagon
+shapeFor ClassInstance{}     = Octagon
+shapeFor CollapsedData{}     = Box3D
+shapeFor CollapsedClass{}    = DoubleOctagon
+shapeFor CollapsedInstance{} = Octagon
+shapeFor NormalEntity        = BoxShape
+
+styleFor                 :: Maybe ModName -> ModName -> StyleItem
+styleFor mm m@LocalMod{} = flip SItem [] . bool Bold Solid
+                           $ maybe True ((==) m) mm
+styleFor _  ExtMod{}     = SItem Dashed []
+styleFor _  UnknownMod   = SItem Dotted []
+
+callAttributes                        :: CallType -> Attributes
+callAttributes NormalCall             = [ Color [ColorName "black"]]
+callAttributes InstanceDeclaration    = [ Color [ColorName "navy"]
+                                        , Dir NoDir
+                                        ]
+callAttributes DefaultInstDeclaration = [ Color [ColorName "turquoise"]
+                                        , Dir NoDir
+                                        ]
+callAttributes RecordConstructor      = [ Color [ColorName "magenta"]
+                                        , ArrowTail oDot
+                                        , ArrowHead vee
+                                        ]
+
+callAttributes'              :: LEdge (Int, CallType) -> Attributes
+callAttributes' (_,_,(n,ct)) = PenWidth (fromIntegral n)
+                               : callAttributes ct
+
+clustAttributes               :: EntClustType -> Attributes
+clustAttributes (ClassDefn c) = [ Label . StrLabel $ "Class: " ++ c
+                                , Style [SItem Filled [], SItem Rounded []]
+                                , FillColor $ ColorName "rosybrown1"
+                                ]
+clustAttributes (DataDefn d)  = [ Label . StrLabel $ "Data: " ++ d
+                                , Style [SItem Filled [], SItem Rounded []]
+                                , FillColor $ ColorName "papayawhip"
+                                ]
+clustAttributes (ClassInst d) = [ Label . StrLabel $ "Instance for: " ++ d
+                                , Style [SItem Filled [], SItem Rounded []]
+                                , FillColor $ ColorName "slategray1"
+                                ]
+clustAttributes (ModPath p)   = [ FontSize 18
+                                , Label $ StrLabel p
+                                ]
+
+clustAttributes' :: EntClustType -> [GlobalAttributes]
+clustAttributes' = return . GraphAttrs . clustAttributes
+
+modClustAttrs   :: ModName -> [GlobalAttributes]
+modClustAttrs m = [GraphAttrs [Label . StrLabel $ nameOfModule m]]
+
+-- -----------------------------------------------------------------------------
+
+-- | Create a 'DotGraph' using a clustering function.
+drawClusters       :: (HSGraph -> HSClustGraph) -> HSData -> DotGraph Node
+drawClusters cf dg = graphvizClusters dg'
+                                 gAttrs
+                                 (const [])
+                                 nAttr
+                                 callAttributes'
+    where
+      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      dg' = updateGraph (compactSame . cf . collapseStructures') dg
+      rs = getRoots dg
+      ls = getLeaves dg
+      es = getWRoots dg
+      nAttr = entityAttributes rs ls es True Nothing
+
+-- -----------------------------------------------------------------------------
+
+drawModules    :: ModData -> DotGraph Node
+drawModules dg = graphvizClusters' dg
+                                   gAttrs
+                                   clusteredModule
+                                   (Just . Str)
+                                   cAttr
+                                   nAttr
+                                   (const [])
+    where
+      gAttrs = [] --[GraphAttrs [Label $ StrLabel t]]
+      cAttr p = [GraphAttrs [Label $ StrLabel p]]
+      rs = I.fromList $ applyAlg rootsOf' dg
+      ls = I.fromList $ applyAlg leavesOf' dg
+      es = I.fromList $ wantedRootNodes dg
+      nAttr (n,m) = [ Label $ StrLabel m
+                    , Color [ColorName $ mCol rs ls es n]
+                    , Shape Tab
+                    ]
+
+mCol :: IntSet -> IntSet -> IntSet -> Node -> String
+mCol rs ls es n
+    | isRoot && not isExp = "red"
+    | isRoot              = "mediumblue"
+    | isLeaf              = "forestgreen"
+    | otherwise           = "black"
+    where
+      isRoot = n `I.member` rs
+      isLeaf = n `I.member` ls
+      isExp = n `I.member` es

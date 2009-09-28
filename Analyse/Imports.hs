@@ -35,13 +35,14 @@ import Analyse.Utils
 import Data.Graph.Analysis
 
 import Data.Maybe
+import qualified Data.Map as M
 import Text.Printf
 
-type ImportData = GraphData ModuleName
+-- -----------------------------------------------------------------------------
 
 -- | Analyse the imports present in the software.  Takes in a random seed
 --   as well as a list of all modules exported.
-analyseImports         :: [ModuleName] -> HaskellModules -> DocElement
+analyseImports         :: [ModName] -> ParsedModules -> DocElement
 analyseImports exps hm = Section sec elems
     where
       imd = importsToGraph exps hm
@@ -55,24 +56,30 @@ analyseImports exps hm = Section sec elems
                            , chainAnal
                            ]
 
-importsToGraph          :: [ModuleName] -> HaskellModules -> ImportData
-importsToGraph exps hms = importData params
+importsToGraph          :: [ModName] -> ParsedModules -> ModData
+importsToGraph exps pms = importData params
     where
-      params = Params { dataPoints    = modulesIn hms
-                      , relationships = moduleImports hms
+      params = Params { dataPoints    = M.keys pms
+                      , relationships = moduleImports pms
                       , roots         = exps
                       , directed      = True
                       }
 
-graphOf     :: ImportData -> Maybe DocElement
+moduleImports :: ParsedModules -> [Rel ModName ()]
+moduleImports = concatMap imps . M.elems
+    where
+      imps pm = map (toRel (moduleName pm))
+                . M.keys $ imports pm
+      toRel m m' = (m,m',())
+
+graphOf     :: ModData -> Maybe DocElement
 graphOf imd = Just $ Section sec [gi]
     where
       sec = Text "Visualisation of imports"
-      gi = GraphImage $ applyAlg dg imd
-      dg g = toGraph "imports" lbl g
-      lbl = "Import visualisation"
+      gi = GraphImage ("imports", lbl, drawModules imd)
+      lbl = Text "Import visualisation"
 
-componentAnal :: ImportData -> Maybe DocElement
+componentAnal :: ModData -> Maybe DocElement
 componentAnal imd
     | single comp = Nothing
     | otherwise   = Just el
@@ -84,7 +91,7 @@ componentAnal imd
       text = printf "The imports have %d components.  \
                      \You may wish to consider splitting the code up." len
 
-cycleAnal :: ImportData -> Maybe DocElement
+cycleAnal :: ModData -> Maybe DocElement
 cycleAnal imd
     | null cycs = Nothing
     | otherwise = Just el
@@ -99,7 +106,7 @@ cycleAnal imd
            $ (Paragraph [text]) : cycs' ++ [Paragraph [textAfter]]
       sec = Text "Cycle analysis of imports"
 
-chainAnal :: ImportData -> Maybe DocElement
+chainAnal :: ModData -> Maybe DocElement
 chainAnal imd
     | null chns = Nothing
     | otherwise = Just el
@@ -114,7 +121,7 @@ chainAnal imd
            [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       sec = Text "Import chain analysis"
 
-rootAnal :: ImportData -> Maybe DocElement
+rootAnal :: ModData -> Maybe DocElement
 rootAnal imd
     | asExpected = Nothing
     | otherwise  = Just $ Section sec ps
@@ -134,7 +141,7 @@ rootAnal imd
                      , ("not in the export list but roots",ntWd)]
       sec = Text "Import root analysis"
 
-cycleCompAnal     :: ImportData -> Maybe DocElement
+cycleCompAnal     :: ModData -> Maybe DocElement
 cycleCompAnal imd = Just $ Section sec pars
     where
       cc = cyclomaticComplexity imd
@@ -145,4 +152,4 @@ cycleCompAnal imd = Just $ Section sec pars
       textAfter = Text "For more information on cyclomatic complexity, \
                        \please see: "
       link = DocLink (Text "Wikipedia: Cyclomatic Complexity")
-                     (URL "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
+                     (Web "http://en.wikipedia.org/wiki/Cyclomatic_complexity")

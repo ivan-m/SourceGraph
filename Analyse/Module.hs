@@ -95,8 +95,8 @@ graphOf (n,m,fd) = Just $ Section sec [gi]
     where
       sec = Grouping [ Text "Visualisation of"
                      , Emphasis $ Text n]
-      gi = GraphImage (n, lbl, drawGraph (Just m) fd)
-      lbl = Text $ unwords ["Diagram of:", n]
+      gi = GraphImage (n, Text lbl, drawGraph lbl (Just m) fd)
+      lbl = unwords ["Diagram of:", n]
 
 componentAnal :: ModuleData -> Maybe DocElement
 componentAnal (n,_,fd)
@@ -184,10 +184,10 @@ coreAnal (n,m,fd) = if isEmpty core
       fd' = updateGraph coreOf fd
       core = graph fd'
       p = n ++ "_core"
-      lbl = Text $ unwords ["Core of", n]
+      lbl = unwords ["Core of", n]
       hdr = Paragraph [Text "The core of a module can be thought of as \
                              \the part where all the work is actually done."]
-      anal = GraphImage (p,lbl,drawGraph (Just m) fd')
+      anal = GraphImage (p,Text lbl,drawGraph lbl (Just m) fd')
       el = Section sec [hdr, anal]
       sec = Grouping [ Text "Core analysis of"
                      , Emphasis (Text n)]
@@ -203,11 +203,11 @@ collapseAnal (n,m,fd) = if (trivialCollapse gc)
       fd' = updateGraph collapseGraph fd
       gc = graph fd'
       p = n ++ "_collapsed"
-      lbl = Text $ unwords ["Collapsed view of", n]
+      lbl = unwords ["Collapsed view of", n]
       hdr = Paragraph [Text "The collapsed view of a module collapses \
                             \down all cliques, cycles, chains, etc. to \
                             \make the graph tree-like." ]
-      gr = GraphImage (p,lbl,drawGraph (Just m) fd')
+      gr = GraphImage (p,Text lbl,drawGraph lbl (Just m) fd')
       el = Section sec [hdr, gr]
       sec = Grouping [ Text "Collapsed view of"
                      , Emphasis (Text n)]

@@ -118,14 +118,15 @@ bool t f b = if b then t else f
 -- -----------------------------------------------------------------------------
 
 -- | Create the nested 'DotGraph'.
-drawGraph       :: Maybe ModName -> HSData -> DotGraph Node
-drawGraph mm dg = graphvizClusters' dg'
-                                    gAttrs
-                                    toClust
-                                    ctypeID
-                                    clustAttributes'
-                                    nAttr
-                                    callAttributes'
+drawGraph           :: String -> Maybe ModName -> HSData -> DotGraph Node
+drawGraph gid mm dg = setID (Str gid)
+                      $ graphvizClusters' dg'
+                                          gAttrs
+                                          toClust
+                                          ctypeID
+                                          clustAttributes'
+                                          nAttr
+                                          callAttributes'
     where
       gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.2 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph compactSame dg
@@ -136,12 +137,13 @@ drawGraph mm dg = graphvizClusters' dg'
       nAttr = entityAttributes rs ls es False mm
 
 -- | One-module-per-cluster 'DotGraph'
-drawGraph'    :: HSData -> DotGraph Node
-drawGraph' dg = graphvizClusters dg'
-                                 gAttrs
-                                 modClustAttrs
-                                 nAttr
-                                 callAttributes'
+drawGraph'        :: String -> HSData -> DotGraph Node
+drawGraph' gid dg = setID (Str gid)
+                    $ graphvizClusters dg'
+                                       gAttrs
+                                       modClustAttrs
+                                       nAttr
+                                       callAttributes'
     where
       gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph (compactSame . collapseStructures') dg
@@ -244,12 +246,13 @@ modClustAttrs m = [GraphAttrs [Label . StrLabel $ nameOfModule m]]
 -- -----------------------------------------------------------------------------
 
 -- | Create a 'DotGraph' using a clustering function.
-drawClusters       :: (HSGraph -> HSClustGraph) -> HSData -> DotGraph Node
-drawClusters cf dg = graphvizClusters dg'
-                                 gAttrs
-                                 (const [])
-                                 nAttr
-                                 callAttributes'
+drawClusters           :: String -> (HSGraph -> HSClustGraph) -> HSData -> DotGraph Node
+drawClusters gid cf dg = setID (Str gid)
+                         $ graphvizClusters dg'
+                                            gAttrs
+                                            (const [])
+                                            nAttr
+                                            callAttributes'
     where
       gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph (compactSame . cf . collapseStructures') dg
@@ -260,14 +263,15 @@ drawClusters cf dg = graphvizClusters dg'
 
 -- -----------------------------------------------------------------------------
 
-drawModules    :: ModData -> DotGraph Node
-drawModules dg = graphvizClusters' dg
-                                   gAttrs
-                                   clusteredModule
-                                   cID
-                                   cAttr
-                                   nAttr
-                                   (const [])
+drawModules        :: String -> ModData -> DotGraph Node
+drawModules gid dg = setID (Str gid)
+                     $ graphvizClusters' dg
+                                         gAttrs
+                                         clusteredModule
+                                         cID
+                                         cAttr
+                                         nAttr
+                                         (const [])
     where
       cID s = bool (Just $ Str s) Nothing $ null s
       gAttrs = [] --[GraphAttrs [Label $ StrLabel t]]

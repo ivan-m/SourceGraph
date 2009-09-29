@@ -75,8 +75,8 @@ graphOf     :: ModData -> Maybe DocElement
 graphOf imd = Just $ Section sec [gi]
     where
       sec = Text "Visualisation of imports"
-      gi = GraphImage ("imports", lbl, drawModules imd)
-      lbl = Text "Import visualisation"
+      gi = GraphImage ("imports", Text lbl, drawModules lbl imd)
+      lbl = "Import visualisation"
 
 componentAnal :: ModData -> Maybe DocElement
 componentAnal imd

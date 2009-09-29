@@ -82,9 +82,8 @@ graphOf    :: HSData -> Maybe DocElement
 graphOf cd = Just $ Section sec [gc]
     where
       sec = Text "Visualisation of the entire software"
-      gc = GraphImage ("code", lbl, dg)
-      dg = drawGraph Nothing cd
-      lbl = Text "Entire Codebase"
+      gc = GraphImage ("code", Text lbl, drawGraph lbl Nothing cd)
+      lbl = "Entire Codebase"
 
 clustersOf      :: (RandomGen g) => g -> HSData -> Maybe DocElement
 clustersOf g cd = Just $ Section sec [ text, gc, textAfter
@@ -92,19 +91,19 @@ clustersOf g cd = Just $ Section sec [ text, gc, textAfter
     where
       blank = Paragraph [BlankSpace]
       sec = Text "Visualisation of overall function calls"
-      gc = GraphImage ("codeCluster", lbl, drawGraph' cd)
+      gc = GraphImage ("codeCluster", Text lbl, drawGraph' lbl cd)
       text = Paragraph
              [Text "Here is the current module grouping of functions:"]
-      lbl = Text "Current module groupings"
+      lbl = "Current module groupings"
       textAfter = Paragraph [Text "Here are two proposed module groupings:"]
       cwMsg = Paragraph [Emphasis $ Text "Using the Chinese Whispers algorithm:"]
-      cw = GraphImage ("codeCW", cwLbl, drawClusters (chineseWhispers g) cd)
-      cwLbl = Text "Chinese Whispers module suggestions"
+      cw = GraphImage ("codeCW", Text cwLbl, drawClusters cwLbl (chineseWhispers g) cd)
+      cwLbl = "Chinese Whispers module suggestions"
       rngMsg = Paragraph [Emphasis $ Text "Using the Relative Neighbourhood algorithm:"]
-      rng = GraphImage ("codeRNG", rngLbl, drawClusters relNbrhd cd)
+      rng = GraphImage ("codeRNG", Text rngLbl, drawClusters lbl relNbrhd cd)
       -- Being naughty to avoid having to define drawClusters'
       relNbrhd = relativeNeighbourhood $ directedData cd
-      rngLbl = Text "Relative Neighbourhood module suggestions"
+      rngLbl = "Relative Neighbourhood module suggestions"
 
 componentAnal :: HSData -> Maybe DocElement
 componentAnal cd
@@ -199,10 +198,10 @@ coreAnal cd = if isEmpty core
     where
       cd' = updateGraph coreOf cd
       core = graph cd'
-      lbl = Text "Overall core"
+      lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \
                              \the part where all the work is actually done."]
-      anal = GraphImage ("codeCore", lbl, drawGraph Nothing cd')
+      anal = GraphImage ("codeCore", Text lbl, drawGraph lbl Nothing cd')
       sec = Text "Overall Core analysis"
 
 
@@ -216,11 +215,11 @@ collapseAnal cd = if (trivialCollapse gc)
     where
       cd' = updateGraph collapseGraph cd
       gc = graph cd'
-      lbl = Text "Collapsed view of the entire codebase"
+      lbl = "Collapsed view of the entire codebase"
       hdr = Paragraph [Text "The collapsed view of code collapses \
                             \down all cliques, cycles, chains, etc. to \
                             \make the graph tree-like." ]
-      gr = GraphImage ("codeCollapsed", lbl, drawGraph Nothing cd')
+      gr = GraphImage ("codeCollapsed", Text lbl, drawGraph lbl Nothing cd')
       sec = Text "Collapsed view of the entire codebase"
 -}
 

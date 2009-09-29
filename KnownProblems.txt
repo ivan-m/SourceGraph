@@ -1,0 +1,14 @@
+This is a list of known problems with SourceGraph except for those
+related to parsing.
+
+* Node-based reporting (cycles, etc.) get confused with Class
+  functions.
+
+* Printing of labels doesn't always turn out so well (overlaps, etc.).
+
+* For some reason, a lot of class instance functions won't get drawn
+  in their clusters like they're meant to.  Not sure why, as the
+  generated Dot code looks right (this might be from a limitation of
+  dot...).
+
+* No options on what to do, etc.

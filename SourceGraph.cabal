@@ -1,5 +1,5 @@
 Name:                SourceGraph
-Version:             0.3
+Version:             0.5.0.0
 Synopsis:            Use graph-theory to analyse your code
 Description:         SourceGraph uses the Graphalyze library to analyse
                      Cabalized Haskell code.
@@ -9,29 +9,43 @@ License-file:        COPYRIGHT
 Copyright:           (c) Ivan Lazar Miljenovic
 Author:              Ivan Lazar Miljenovic
 Maintainer:          Ivan.Miljenovic@gmail.com
-Extra-Source-Files:  TODO
-Cabal-Version:       >= 1.2
+Cabal-Version:       >= 1.6
 Build-Type:          Simple
-Tested-With:         GHC==6.8.3
-build-Depends:       base
+Extra-Source-Files: TODO
+                    KnownProblems.txt
+                    ParsingProblems.txt
 
-Flag small_base
-  description: Choose the new smaller, split-up base package.
+Source-Repository head
+    Type:         darcs
+    Location:     http://code.haskell.org/SourceGraph
+
 
 Executable SourceGraph {
 
     Main-Is:            Main.hs
-    Other-Modules:      Parsing, Parsing.Types, Parsing.ParseModule,
-                        Analyse, Analyse.Utils, Analyse.Module,
-                                 Analyse.Imports, Analyse.Everything
+    Other-Modules:      Parsing,
+                        Parsing.ParseModule,
+                        Parsing.State,
+                        Parsing.Types,
+                        Analyse,
+                        Analyse.Utils,
+                        Analyse.Module,
+                        Analyse.Imports,
+                        Analyse.Everything,
+                        Paths_SourceGraph
     Ghc-Options:        -Wall
-    Ghc-Prof-Options:   -auto-all
+    Ghc-Prof-Options:   -prof -auto-all
 
-    if flag(small_base)
-       Build-Depends:   base >= 3, containers, filepath, random, directory
-    else
-       Build-Depends:   base < 3
-
-    Build-Depends:      fgl, Graphalyze >= 0.5, graphviz >= 2008.9.20,
-                        Cabal >= 1.6, Cabal < 1.7, haskell-src-exts >= 0.3
+    Build-Depends:      base >= 3 && < 5,
+                        extensible-exceptions,
+                        containers,
+                        multiset,
+                        filepath,
+                        random,
+                        directory,
+                        fgl,
+                        Graphalyze >= 0.7.0.0 && < 0.8.0.0,
+                        graphviz >= 2999.6.0.0 && < 2999.7.0.0,
+                        Cabal >= 1.6 && < 1.7,
+                        haskell-src-exts >= 1.1.0 && < 1.2.0
 }

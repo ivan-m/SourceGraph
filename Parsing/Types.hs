@@ -300,15 +300,23 @@ clusterEntity ln@(_,e) = setClust (N ln)
                    (Constructor d)     -> C $ DataDefn d
                    (RecordFunction d)  -> C $ DataDefn d
                    (ClassFunction c)   -> C $ ClassDefn c
-                   (DefaultInstance c) -> C $ ClassDefn c
+                   (DefaultInstance c) -> C (ClassDefn c) . C DefInst
                    (ClassInstance c d) -> C (ClassDefn c) . C (ClassInst d)
                    _                   -> id
 
 data EntClustType = ClassDefn ClassName
                   | DataDefn DataType
                   | ClassInst DataType
+                  | DefInst
                   | ModPath String
                     deriving (Eq, Ord, Show, Read)
+
+ctypeID               :: EntClustType -> Maybe GraphID
+ctypeID (ClassDefn c) = Just . Str $ "Class: " ++ c
+ctypeID (DataDefn d)  = Just . Str $ "Data: " ++ d
+ctypeID (ClassInst d) = Just . Str $ "Instance for: " ++ d
+ctypeID DefInst       = Just . Str $ "Default Instance"
+ctypeID (ModPath p)   = Just . Str $ "Directory: " ++ p
 
 type EntityName = String
 

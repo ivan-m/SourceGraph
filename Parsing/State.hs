@@ -34,6 +34,7 @@ module Parsing.State
     , getModuleNames
     , getLookup
     , getParsedModule
+    , getFutureParsedModule
     , getModuleName
     , putParsedModule
     ) where
@@ -42,16 +43,20 @@ import Parsing.Types
 
 -- -----------------------------------------------------------------------------
 
-runPState               :: ParsedModules -> ModuleNames -> EntityLookup
+runPState               :: ParsedModules -> ModuleNames
                            -> ParsedModule -> PState a -> ParsedModule
-runPState hms mns el pm = parsedModule . flip execState mp
+runPState hms mns pm st = pm'
     where
-      mp = MP hms mns el pm
+      -- Tying the knot
+      el = internalLookup pm'
+      mp = MP hms mns el pm pm'
+      pm' = parsedModule $ execState st mp
 
 data ModuleParsing = MP { moduleLookup :: ParsedModules
                         , modNmsLookup :: ModuleNames
                         , entityLookup :: EntityLookup
                         , parsedModule :: ParsedModule
+                        , futureParsedModule :: ParsedModule
                         }
 
 newtype PState value
@@ -75,6 +80,9 @@ getLookup = gets entityLookup
 
 getParsedModule :: PState ParsedModule
 getParsedModule = gets parsedModule
+
+getFutureParsedModule :: PState ParsedModule
+getFutureParsedModule = gets futureParsedModule
 
 getModuleName :: PState ModName
 getModuleName = gets (moduleName . parsedModule)

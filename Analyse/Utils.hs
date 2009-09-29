@@ -122,12 +122,12 @@ drawGraph       :: Maybe ModName -> HSData -> DotGraph Node
 drawGraph mm dg = graphvizClusters' dg'
                                     gAttrs
                                     toClust
-                                    (const Nothing)
+                                    ctypeID
                                     clustAttributes'
                                     nAttr
                                     callAttributes'
     where
-      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.2 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph compactSame dg
       toClust = bool clusterEntity clusterEntityM' $ isJust mm
       rs = getRoots dg
@@ -157,23 +157,27 @@ entityAttributes :: Set Entity -> Set Entity -> Set Entity -> Bool
 entityAttributes rs ls ex a mm (_,e@(Ent m n t))
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
-      , Color [ColorName cl]
-      , BgColor $ ColorName sh
+      -- , Color [ColorName cl]
+      , FillColor $ ColorName sh
       , Style [SItem Filled [], styleFor mm m]
       ]
     where
       lbl = bool (nameOfModule m ++ "\\n" ++ n) n
             $ not sameMod || a
       -- Using the default X11 color names.
+      {-
       isR = e `S.member` rs
       isL = e `S.member` ls
+      -}
       isE = e `S.member` ex
+      {-
       cl | isR && not isE = "red"
          | isR            = "mediumblue"
          | isL            = "forestgreen"
          | otherwise      = "black"
+       -}
       sh | isE       = "gold"
-         | otherwise = "bisque"
+         | otherwise = "beige"
       sameMod = maybe True ((==) m) mm
 
 shapeFor                     :: EntityType -> Shape
@@ -223,6 +227,10 @@ clustAttributes (ClassInst d) = [ Label . StrLabel $ "Instance for: " ++ d
                                 , Style [SItem Filled [], SItem Rounded []]
                                 , FillColor $ ColorName "slategray1"
                                 ]
+clustAttributes DefInst       = [ Label . StrLabel $ "Default Instance"
+                                , Style [SItem Filled [], SItem Rounded []]
+                                , FillColor $ ColorName "slategray1"
+                                ]
 clustAttributes (ModPath p)   = [ FontSize 18
                                 , Label $ StrLabel p
                                 ]
@@ -256,11 +264,12 @@ drawModules    :: ModData -> DotGraph Node
 drawModules dg = graphvizClusters' dg
                                    gAttrs
                                    clusteredModule
-                                   (Just . Str)
+                                   cID
                                    cAttr
                                    nAttr
                                    (const [])
     where
+      cID s = bool (Just $ Str s) Nothing $ null s
       gAttrs = [] --[GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
       rs = I.fromList $ applyAlg rootsOf' dg

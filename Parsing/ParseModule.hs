@@ -54,9 +54,7 @@ parseModule       :: ParsedModules -> Module -> ParsedModule
 parseModule hms m = pm
     where
       mns = moduleNames hms
-      -- Tying the Knot
-      el = internalLookup pm
-      pm = runPState hms mns el blankPM $ parseInfo m
+      pm = runPState hms mns blankPM $ parseInfo m
 
 -- -----------------------------------------------------------------------------
 
@@ -152,13 +150,15 @@ listedEnt pm _  (IThingWith n cs) = esFrom dataDecls ++ esFrom classDecls
 -- all top-level items are exported).
 instance ModuleItem (Maybe [ExportSpec]) where
     parseInfo Nothing    = do pm <- getParsedModule
+                              fpm <- getFutureParsedModule
                               el <- getLookup
                               let mainFunc = M.lookup (Nothing,"main") el
-                                  es = maybe (exportableEnts pm) S.singleton mainFunc
+                                  es = maybe (exportableEnts fpm) S.singleton mainFunc
                               putParsedModule $ pm { exports = es }
     parseInfo (Just eps) = do pm <- getParsedModule
-                              let el = exportableLookup pm
-                                  es = mkSet $ map (listedExp pm el) eps
+                              fpm <- getFutureParsedModule
+                              let el = exportableLookup fpm
+                                  es = mkSet $ map (listedExp fpm el) eps
                               putParsedModule $ pm { exports = es }
 
 -- Doesn't work on re-exported Class/Data specs.
@@ -170,9 +170,10 @@ listedExp _  _  EAbs{}              = []
 listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
                                       -- one will be empty
     where
-      -- A bit ugly...
-      esFrom f = maybe [] (maybe [] M.elems . flip M.lookup (f pm) . snd)
-                 $ qName qn
+      esFrom f = fromMaybe []
+                 $ do n <- liftM snd $ qName qn
+                      el <- M.lookup n $ f pm
+                      return $ M.elems el
 listedExp pm _  (EThingWith qn cs)  = esFrom dataDecls ++ esFrom classDecls
     where
       esFrom f = fromMaybe [] $ do mn <- fmap snd $ qName qn
@@ -318,7 +319,35 @@ addCDecl c (TypeSig _ ns _) = do m <- getModuleName
                                      es = map (\n -> Ent m n eTp) ns'
                                  return $ Just (mkEl es)
 addCDecl c (FunBind ms)     = mapM_ (addCMatch c) ms >> return Nothing
--- Can't have pattern binds in classes
+
+addCDecl c pb@PatBind{}     = do mn <- getModuleName
+                                 el <- getLookup
+                                 pm <- getParsedModule
+                                 (d,cs) <- getDecl pb
+                                 let vs = S.map snd d
+                                     -- Class-based entities
+                                     mkI n = Ent mn n (DefaultInstance c)
+                                     mkC n = Ent mn n (ClassFunction c)
+                                     cis = S.map (\n -> (mkC n, mkI n)) vs
+                                     -- Instance Decls
+                                     iDcls = S.map snd cis `S.union` instDecls pm
+                                     cis' = MS.fromList $ S.toList cis
+                                     -- DefInst calls
+                                     mkiCl(t,f) = FC f t DefaultInstDeclaration
+                                     ciCls = MS.map mkiCl cis'
+                                     -- Calls for that instance
+                                     is = MS.map snd cis'
+                                     mkFC i o = FC i (lookupEntity el o) NormalCall
+                                     mkFCs o = MS.map (flip mkFC o) is
+                                     cs' = MS.unions . map mkFCs $ MS.toList cs
+                                     pm' = pm { instDecls = iDcls
+                                              , funcCalls = funcCalls pm
+                                                            `MS.union` ciCls
+                                                            `MS.union` cs'
+                                              }
+                                 putParsedModule pm'
+                                 return Nothing
+-- Can't have anything else in classes
 addCDecl _ _                = return Nothing
 
 addCMatch     :: ClassName -> Match -> PState ()
@@ -332,6 +361,9 @@ addCMatch c m = do el <- getLookup
                                 , funcCalls = MS.insert dic $ funcCalls pm
                                 }
                    putParsedModule pm'
+
+addCPatBind :: ClassName -> Pat -> Rhs -> Binds -> PState ()
+addCPatBind = undefined
 
 -- -----------------------------------------------------------------------------
 -- Instance Declaration
@@ -351,6 +383,33 @@ addInstDecl _ _ _              = return ()
 
 addIDecl                  :: ClassName -> DataType -> Decl -> PState (Set Entity)
 addIDecl c d (FunBind ms) = liftM S.fromList $ mapM (addIMatch c d) ms
+addIDecl c d pb@PatBind{} = do mn <- getModuleName
+                               el <- getLookup
+                               pm <- getParsedModule
+                               (df,cs) <- getDecl pb
+                               let vs = S.map snd df
+                                   -- Class-based entities
+                                   mkI n = Ent mn n (ClassInstance c d)
+                                   mkC = lookupEntity' el
+                                   cis = S.map (\n -> (mkC n, mkI n)) vs
+                                   -- Instance Decls
+                                   iDcls = S.map snd cis `S.union` instDecls pm
+                                   cis' = MS.fromList $ S.toList cis
+                                   -- DefInst calls
+                                   mkiCl(t,f) = FC f t InstanceDeclaration
+                                   ciCls = MS.map mkiCl cis'
+                                   -- Calls for that instance
+                                   is = MS.map snd cis'
+                                   mkFC i o = FC i (lookupEntity el o) NormalCall
+                                   mkFCs o = MS.map (flip mkFC o) is
+                                   cs' = MS.unions . map mkFCs $ MS.toList cs
+                                   pm' = pm { instDecls = iDcls
+                                            , funcCalls = funcCalls pm
+                                                          `MS.union` ciCls
+                                                          `MS.union` cs'
+                                            }
+                               putParsedModule pm'
+                               return $ S.map fst cis
 addIDecl _ _ _            = return S.empty
 
 addIMatch       :: ClassName -> DataType -> Match -> PState Entity

@@ -362,9 +362,6 @@ addCMatch c m = do el <- getLookup
                                 }
                    putParsedModule pm'
 
-addCPatBind :: ClassName -> Pat -> Rhs -> Binds -> PState ()
-addCPatBind = undefined
-
 -- -----------------------------------------------------------------------------
 -- Instance Declaration
 

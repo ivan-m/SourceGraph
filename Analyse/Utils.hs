@@ -130,7 +130,8 @@ drawGraph gid mm dg = setID (Str gid)
     where
       gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.2 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph compactSame dg
-      toClust = bool clusterEntity clusterEntityM' $ isJust mm
+      -- Possible clustering problem
+      toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
       rs = getRoots dg
       ls = getLeaves dg
       es = getWRoots dg

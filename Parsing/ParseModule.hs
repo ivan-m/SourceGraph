@@ -387,7 +387,7 @@ addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                let vs = S.map snd df
                                    -- Class-based entities
                                    mkI n = Ent mn n (ClassInstance c d)
-                                   mkC = lookupEntity' el
+                                   mkC = classFuncLookup c el
                                    cis = S.map (\n -> (mkC n, mkI n)) vs
                                    -- Instance Decls
                                    iDcls = S.map snd cis `S.union` instDecls pm
@@ -414,13 +414,20 @@ addIMatch c d m = do el <- getLookup
                      fi <- addFuncCalls (ClassInstance c d) m
                      pm <- getParsedModule
                      let cfn = name fi
-                         cf = lookupEntity' el cfn
+                         cf = classFuncLookup c el cfn
                          ic = FC cf fi InstanceDeclaration
                          pm' = pm { instDecls = S.insert fi $ instDecls pm
                                   , funcCalls = MS.insert ic $ funcCalls pm
                                   }
                      putParsedModule pm'
                      return cf
+
+classFuncLookup        :: ClassName -> EntityLookup -> EntityName -> Entity
+classFuncLookup c el n = case inModule e of
+                           UnknownMod -> e { eType = ClassFunction c }
+                           _          -> e
+    where
+      e = lookupEntity' el n
 
 -- -----------------------------------------------------------------------------
 -- For top-level functions

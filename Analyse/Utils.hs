@@ -234,9 +234,7 @@ clustAttributes DefInst       = [ Label . StrLabel $ "Default Instance"
                                 , Style [SItem Filled [], SItem Rounded []]
                                 , FillColor $ ColorName "slategray1"
                                 ]
-clustAttributes (ModPath p)   = [ FontSize 18
-                                , Label $ StrLabel p
-                                ]
+clustAttributes (ModPath p)   = [ Label $ StrLabel p ]
 
 clustAttributes' :: EntClustType -> [GlobalAttributes]
 clustAttributes' = return . GraphAttrs . clustAttributes

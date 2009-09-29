@@ -239,7 +239,7 @@ analyseCode fp nm exps hms = do d <- today
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
-      t = Grouping [Text "Analysis of", Emphasis $ Text nm]
+      t = Grouping [Text "Analysis of", Text nm]
       a = unwords [ "Analysed by", sv programmeName programmeVersion
                   , "using", sv "Graphalyze" version]
       c g = analyse g exps hms

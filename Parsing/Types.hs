@@ -34,9 +34,11 @@ module Parsing.Types where
 import Data.Graph.Analysis.Types( ClusterLabel(..)
                                 , ClusterType(..)
                                 , Rel)
+import Data.Graph.Analysis.Reporting(unDotPath)
 import Data.GraphViz(GraphID(..), NodeCluster(..))
 import Data.Graph.Inductive.Graph(LNode)
 
+import Data.Char(isLetter, isDigit)
 import Data.List(intercalate)
 import Data.Maybe(fromMaybe, isJust)
 import qualified Data.Map as M
@@ -194,7 +196,7 @@ clusteredModule (n,m) = go $ modulePathOf m
       go []     = error "Shouldn't be able to have an empty module name."
 
 instance ClusterType ModName where
-    clusterID = Just . Str . nameOfModule
+    clusterID = Just . Str . unDotPath . nameOfModule
 
 instance ClusterLabel ModName where
     type Cluster ModName = String
@@ -312,11 +314,14 @@ data EntClustType = ClassDefn ClassName
                     deriving (Eq, Ord, Show, Read)
 
 ctypeID               :: EntClustType -> Maybe GraphID
-ctypeID (ClassDefn c) = Just . Str $ "Class: " ++ c
-ctypeID (DataDefn d)  = Just . Str $ "Data: " ++ d
-ctypeID (ClassInst d) = Just . Str $ "Instance for: " ++ d
-ctypeID DefInst       = Just . Str $ "Default Instance"
-ctypeID (ModPath p)   = Just . Str $ "Directory: " ++ p
+ctypeID (ClassDefn c) = Just . Str $ "Class_" ++ escID c
+ctypeID (DataDefn d)  = Just . Str $ "Data_" ++ escID d
+ctypeID (ClassInst d) = Just . Str $ "Inst_For_" ++ escID d
+ctypeID DefInst       = Just . Str $ "DefaultInstance"
+ctypeID (ModPath p)   = Just . Str $ "Directory_" ++ escID p
+
+escID :: String -> String
+escID = filter (\c -> isLetter c || isDigit c || c == '_')
 
 type EntityName = String
 

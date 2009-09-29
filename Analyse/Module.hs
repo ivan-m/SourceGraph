@@ -103,7 +103,7 @@ componentAnal (n,_,fd)
     | single comp = Nothing
     | otherwise   = Just el
     where
-      comp = applyAlg componentsOf fd
+      comp = applyAlg componentsOf $ collapseStructures fd
       len = length comp
       el = Section sec [Paragraph [Text text]]
       sec = Grouping [ Text "Component analysis of"
@@ -116,7 +116,7 @@ cliqueAnal (n,_,fd)
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = applyAlg cliquesIn fd
+      clqs = applyAlg cliquesIn $ collapseStructures fd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (name . snd)) clqs
       text = Text $ printf "The module %s has the following cliques:" n
@@ -129,7 +129,7 @@ cycleAnal (n,_,fd)
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = applyAlg uniqueCycles fd
+      cycs = applyAlg uniqueCycles $ collapseStructures fd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (name . snd)) cycs
       text = Text $ printf "The module %s has the following non-clique \
@@ -143,7 +143,7 @@ chainAnal (n,_,fd)
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = interiorChains fd
+      chns = interiorChains $ collapseStructures fd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (name . snd)) chns
       text = Text $ printf "The module %s has the following chains:" n
@@ -159,7 +159,7 @@ rootAnal (n,_,fd)
     | asExpected = Nothing
     | otherwise  = Just el
     where
-      (wntd, ntRs, ntWd) = classifyRoots fd
+      (wntd, ntRs, ntWd) = classifyRoots $ collapseStructures fd
       asExpected = null ntRs && null ntWd
       rpt (s,ns) = if null ns
                    then Nothing
@@ -181,7 +181,7 @@ coreAnal (n,m,fd) = if isEmpty core
                     then Nothing
                     else Just el
     where
-      fd' = updateGraph coreOf fd
+      fd' = updateGraph coreOf $ collapseStructures fd
       core = graph fd'
       p = n ++ "_core"
       lbl = unwords ["Core of", n]
@@ -216,7 +216,7 @@ collapseAnal (n,m,fd) = if (trivialCollapse gc)
 cycleCompAnal          :: ModuleData -> Maybe DocElement
 cycleCompAnal (n,_,fd) = Just $ Section sec pars
     where
-      cc = cyclomaticComplexity fd
+      cc = cyclomaticComplexity $ collapseStructures fd
       sec = Grouping [ Text "Cyclomatic Complexity of"
                        , Emphasis (Text n)]
       pars = [Paragraph [text], Paragraph [textAfter, link]]

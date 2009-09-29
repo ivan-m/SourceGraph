@@ -110,7 +110,7 @@ componentAnal cd
     | single comp = Nothing
     | otherwise   = Just $ Section sec [Paragraph [Text text]]
     where
-      comp = applyAlg componentsOf cd
+      comp = applyAlg componentsOf $ collapseStructures cd
       len = length comp
       sec = Text "Function component analysis"
       text = printf "The functions are split up into %d components.  \
@@ -122,7 +122,7 @@ cliqueAnal cd
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = onlyCrossModule $ applyAlg cliquesIn cd
+      clqs = onlyCrossModule . applyAlg cliquesIn $ collapseStructures cd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (fullName . snd)) clqs
       text = Text "The code has the following cross-module cliques:"
@@ -134,7 +134,7 @@ cycleAnal cd
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = onlyCrossModule $ applyAlg uniqueCycles cd
+      cycs = onlyCrossModule . applyAlg uniqueCycles $ collapseStructures cd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (fullName . snd)) cycs
       text = Text "The code has the following cross-module non-clique cycles:"
@@ -146,7 +146,7 @@ chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = onlyCrossModule $ interiorChains cd
+      chns = onlyCrossModule . interiorChains $ collapseStructures cd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (fullName . snd)) chns
       text = Text "The code has the following cross-module chains:"
@@ -180,7 +180,7 @@ rootAnal cd
 cycleCompAnal    :: HSData -> Maybe DocElement
 cycleCompAnal cd = Just $ Section sec pars
     where
-      cc = cyclomaticComplexity cd
+      cc = cyclomaticComplexity $ collapseStructures cd
       sec = Text "Overall Cyclomatic Complexity"
       pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
@@ -196,7 +196,7 @@ coreAnal cd = if isEmpty core
               then Nothing
               else Just $ Section sec [hdr, anal]
     where
-      cd' = updateGraph coreOf cd
+      cd' = updateGraph coreOf $ collapseStructures cd
       core = graph cd'
       lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \

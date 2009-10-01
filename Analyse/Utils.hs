@@ -240,7 +240,11 @@ clustAttributes' :: EntClustType -> [GlobalAttributes]
 clustAttributes' = return . GraphAttrs . clustAttributes
 
 modClustAttrs   :: ModName -> [GlobalAttributes]
-modClustAttrs m = [GraphAttrs [Label . StrLabel $ nameOfModule m]]
+modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
+                              , Style [SItem Filled []]
+                              , FillColor $ ColorName "wheat1"
+                              ]
+                  ]
 
 -- -----------------------------------------------------------------------------
 
@@ -249,11 +253,15 @@ drawClusters           :: String -> (HSGraph -> HSClustGraph) -> HSData -> DotGr
 drawClusters gid cf dg = setID (Str gid)
                          $ graphvizClusters dg'
                                             gAttrs
-                                            (const [])
+                                            (const cAttr)
                                             nAttr
                                             callAttributes'
     where
       gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      cAttr = [GraphAttrs [ Style [SItem Filled []]
+                          , FillColor $ ColorName "wheat1"
+                          ]
+              ]
       dg' = updateGraph (compactSame . cf . collapseStructures') dg
       rs = getRoots dg
       ls = getLeaves dg

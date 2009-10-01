@@ -43,8 +43,8 @@ import Text.Printf(printf)
 import System.Random(RandomGen)
 
 -- | Performs analysis of the entire codebase.
-analyseEverything :: (RandomGen g) => g -> [ModName] -> ParsedModules
-                  -> DocElement
+analyseEverything           :: (RandomGen g) => g -> [ModName] -> ParsedModules
+                            -> DocElement
 analyseEverything g exps hm = Section sec elems
     where
       cd = codeToGraph exps hm
@@ -87,7 +87,7 @@ graphOf cd = Just $ Section sec [gc]
 
 clustersOf      :: (RandomGen g) => g -> HSData -> Maybe DocElement
 clustersOf g cd = Just $ Section sec [ text, gc, textAfter
-                                     , blank, cwMsg, cw, blank, rngMsg, rng]
+                                     , blank, cwMsg, cw] -- , blank, rngMsg, rng]
     where
       blank = Paragraph [BlankSpace]
       sec = Text "Visualisation of overall function calls"
@@ -95,15 +95,18 @@ clustersOf g cd = Just $ Section sec [ text, gc, textAfter
       text = Paragraph
              [Text "Here is the current module grouping of functions:"]
       lbl = "Current module groupings"
-      textAfter = Paragraph [Text "Here are two proposed module groupings:"]
+      textAfter = Paragraph [Text "Here is a proposed alternate module grouping:"]
+                  -- [Text "Here are two proposed module groupings:"]
       cwMsg = Paragraph [Emphasis $ Text "Using the Chinese Whispers algorithm:"]
       cw = GraphImage ("codeCW", Text cwLbl, drawClusters cwLbl (chineseWhispers g) cd)
       cwLbl = "Chinese Whispers module suggestions"
+{-
       rngMsg = Paragraph [Emphasis $ Text "Using the Relative Neighbourhood algorithm:"]
       rng = GraphImage ("codeRNG", Text rngLbl, drawClusters lbl relNbrhd cd)
       -- Being naughty to avoid having to define drawClusters'
       relNbrhd = relativeNeighbourhood $ directedData cd
       rngLbl = "Relative Neighbourhood module suggestions"
+-}
 
 componentAnal :: HSData -> Maybe DocElement
 componentAnal cd

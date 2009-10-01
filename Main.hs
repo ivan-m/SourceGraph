@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Main where
 
 import Parsing
+import Parsing.Types(nameOfModule)
 import Analyse
 
 import Data.Graph.Analysis
@@ -44,15 +45,16 @@ import Distribution.Verbosity
 
 import Data.Char(toLower)
 import Data.List(nub)
-import Data.Maybe(isJust, fromJust, listToMaybe, catMaybes)
+import Data.Maybe(isJust, fromJust, catMaybes)
+import qualified Data.Map as M
 import System.IO(hPutStrLn, stderr)
 import System.Directory( getCurrentDirectory
                        , doesDirectoryExist
+                       , doesFileExist
                        , getDirectoryContents)
 import System.FilePath( dropFileName
                       , dropExtension
                       , takeExtension
-                      , extSeparator
                       , isPathSeparator
                       , (</>)
                       , (<.>))
@@ -68,22 +70,16 @@ import qualified Paths_SourceGraph as Paths(version)
 
 main :: IO ()
 main = do input <- getArgs
-          let mcbl = getCabalFile input
-          case mcbl of
-            Nothing
-                -> putErrLn "Please pass in a .cabal file"
-            Just cbl
-                -> do pcbl <- parseCabal cbl
-                      case pcbl of
-                        Nothing
-                            -> putErrLn $ unwords [cbl,"is unparseable"]
-                        Just (nm,exps)
-                            -> do let dir = dropFileName cbl
-                                  dir' <- if null dir
-                                            then getCurrentDirectory
-                                            else return dir
-                                  hms <- parseFilesFrom dir'
-                                  analyseCode dir nm exps hms
+          mInfo <- getPkgInfo input
+          case mInfo of
+            Nothing -> putErrLn "No parseable package information found."
+            Just (f,(nm,exps))
+                -> do let dir = dropFileName f
+                      dir' <- if null dir
+                                then getCurrentDirectory
+                                else return dir
+                      hms <- parseFilesFrom dir'
+                      analyseCode dir nm exps hms
 
 programmeName :: String
 programmeName = "SourceGraph"
@@ -95,6 +91,24 @@ putErrLn :: String -> IO ()
 putErrLn = hPutStrLn stderr
 
 -- -----------------------------------------------------------------------------
+
+getPkgInfo :: [String] -> IO (Maybe (FilePath, (String, [ModName])))
+getPkgInfo [] = do putErrLn "Please provide either a Cabal file \
+                            \or a Haskell source file as an argument."
+                   return Nothing
+getPkgInfo [f]
+    | isCabalFile f   = withF parseCabal
+    | isHaskellFile f = withF parseMain
+    where
+      withF func = do ex <- doesFileExist f
+                      if ex
+                         then addF $ func f
+                         else do putErrLn "The provided file does not exist."
+                                 return Nothing
+      addF = fmap (fmap ((,) f))
+getPkgInfo _        = do putErrLn "Please provide a single Cabal \
+                                  \or Haskell source file as an argument."
+                         return Nothing
 
 parseCabal    :: FilePath -> IO (Maybe (String, [ModName]))
 parseCabal fp = do gpd <- try $ readPackageDescription silent fp
@@ -121,10 +135,20 @@ parseCabal fp = do gpd <- try $ readPackageDescription silent fp
                  | otherwise        = error "No exposed modules"
             exps' = map fpToModule exps
 
-getCabalFile :: [FilePath] -> Maybe FilePath
-getCabalFile = listToMaybe . filter isCabalFile
-    where
-      isCabalFile f  = takeExtension f == extSeparator : "cabal"
+isCabalFile :: FilePath -> Bool
+isCabalFile = hasExt "cabal"
+
+parseMain    :: FilePath -> IO (Maybe (String, [ModName]))
+parseMain fp = do pms <- parseHaskellFiles [fp]
+                  let mn = fst $ M.findMin pms
+                  return $ Just (nameOfModule mn, [mn])
+
+-- | Determine if this is the path of a Haskell file.
+isHaskellFile    :: FilePath -> Bool
+isHaskellFile fp = any (flip hasExt fp) haskellExtensions
+
+hasExt     :: String -> FilePath -> Bool
+hasExt ext = (==) ext . drop 1 . takeExtension
 
 fpToModule :: FilePath -> ModName
 fpToModule = createModule . map pSep
@@ -137,9 +161,10 @@ fpToModule = createModule . map pSep
 
 -- | Recursively parse all files from this directory
 parseFilesFrom    :: FilePath -> IO ParsedModules
-parseFilesFrom fp = do files <- getHaskellFilesFrom fp
-                       cnts <- readFiles files
-                       return $ parseHaskell cnts
+parseFilesFrom fp = parseHaskellFiles =<< getHaskellFilesFrom fp
+
+parseHaskellFiles :: [FilePath] -> IO ParsedModules
+parseHaskellFiles = liftM parseHaskell . readFiles
 
 -- -----------------------------------------------------------------------------
 
@@ -168,12 +193,8 @@ getHaskellFilesFrom fp
                       recursiveFiles <- concatMapM getHaskellFilesFrom dirs
                       return (hFiles ++ recursiveFiles)
 
--- | Determine if this is the path of a Haskell file.
-isHaskellFile   :: FilePath -> Bool
-isHaskellFile f = takeExtension f `elem` haskellExtensions
-
 haskellExtensions :: [FilePath]
-haskellExtensions = map (extSeparator :) ["hs","lhs"]
+haskellExtensions = ["hs","lhs"]
 
 -- | Read in all the files that it can.
 readFiles :: [FilePath] -> IO [FileContents]

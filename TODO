@@ -15,3 +15,5 @@ TODO for SourceGraph
 * Find where spurious class function entities are coming from.
 
 * Fix up printing of entities for node lists.
+
+* Add a legend.

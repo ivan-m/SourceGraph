@@ -280,7 +280,7 @@ drawModules gid dg = setID (Str gid)
                                          nAttr
                                          (const [])
     where
-      cID s = bool (Just $ Str s) Nothing $ null s
+      cID s = bool (Just $ Str s) Nothing $ (not . null) s
       gAttrs = [] --[GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
       rs = I.fromList $ applyAlg rootsOf' dg

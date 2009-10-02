@@ -1,3 +1,15 @@
+Changes since 0.5.2.0
+=====================
+
+* Shift overall analysis to the top and per-module analysis to the
+  end, as suggested by Duncan Coutts.
+
+* Graph drawing fixups: instances are now drawn correctly, and the
+  module graph now has modules located in the correct directory.
+
+* Improve some graph drawing aspects (node margins, colours for module
+  graphs, etc.).
+
 Changes since 0.5.1.0
 =====================
 

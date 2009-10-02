@@ -271,6 +271,6 @@ analyseCode fp nm exps hms = do d <- today
                       , Emphasis $ Text programmeName
                       , Text " is "
                       , Bold $ Text "not"
-                      , Text " a refactoring tool, and does not take into \
-                             \account Class declarations and record functions."
+                      , Text " a refactoring tool, and it's usage of Classes is\
+                              \ not yet perfect."
                       ]

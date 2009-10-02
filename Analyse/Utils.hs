@@ -287,16 +287,17 @@ drawModules gid dg = setID (Str gid)
       ls = I.fromList $ applyAlg leavesOf' dg
       es = I.fromList $ wantedRootNodes dg
       nAttr (n,m) = [ Label $ StrLabel m
-                    , Color [ColorName $ mCol rs ls es n]
+                    , FillColor $ ColorName $ mCol rs ls es n
+                    , Style [SItem Filled []]
                     , Shape Tab
                     ]
 
 mCol :: IntSet -> IntSet -> IntSet -> Node -> String
 mCol rs ls es n
-    | isR && not isE = "red"
-    | isR            = "mediumblue"
-    | isL            = "forestgreen"
-    | otherwise      = "black"
+    | isR && not isE = "crimson"
+    | isR            = "gold"
+    | isL            = "cyan"
+    | otherwise      = "bisque"
     where
       isR = n `I.member` rs
       isL = n `I.member` ls

@@ -1,6 +1,6 @@
 Name:                SourceGraph
 Version:             0.5.2.0
-Synopsis:            Use graph-theory to analyse your code
+Synopsis:            Static code analysis using graph-theoretic techniques.
 Description: {
 Statically analyse Haskell source code using graph-theoretic
 techniques.

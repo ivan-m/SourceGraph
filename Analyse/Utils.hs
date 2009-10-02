@@ -128,7 +128,7 @@ drawGraph gid mm dg = setID (Str gid)
                                           nAttr
                                           callAttributes'
     where
-      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.2 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph compactSame dg
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
@@ -146,7 +146,7 @@ drawGraph' gid dg = setID (Str gid)
                                        nAttr
                                        callAttributes'
     where
-      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph (compactSame . collapseStructures') dg
       rs = getRoots dg
       ls = getLeaves dg
@@ -257,7 +257,7 @@ drawClusters gid cf dg = setID (Str gid)
                                             nAttr
                                             callAttributes'
     where
-      gAttrs = [] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
                           , FillColor $ ColorName "wheat1"
                           ]
@@ -281,7 +281,7 @@ drawModules gid dg = setID (Str gid)
                                          (const [])
     where
       cID s = bool (Just $ Str s) Nothing $ (not . null) s
-      gAttrs = [] --[GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] --[GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
       rs = I.fromList $ applyAlg rootsOf' dg
       ls = I.fromList $ applyAlg leavesOf' dg

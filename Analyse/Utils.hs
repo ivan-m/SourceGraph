@@ -37,7 +37,7 @@ import Data.Graph.Inductive hiding (graphviz)
 import Data.GraphViz
 
 import Data.List(groupBy, sortBy)
--- import Data.Maybe(isJust)
+import Data.Maybe(isJust)
 import Data.Function(on)
 import qualified Data.Set as S
 import Data.Set(Set)
@@ -135,7 +135,7 @@ drawGraph gid mm dg = setID (Str gid)
       rs = getRoots dg
       ls = getLeaves dg
       es = getWRoots dg
-      nAttr = entityAttributes rs ls es False mm
+      nAttr = entityAttributes rs ls es (not $ isJust mm) mm
 
 -- | One-module-per-cluster 'DotGraph'
 drawGraph'        :: String -> HSData -> DotGraph Node

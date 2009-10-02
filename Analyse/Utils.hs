@@ -217,24 +217,24 @@ callAttributes'              :: LEdge (Int, CallType) -> Attributes
 callAttributes' (_,_,(n,ct)) = PenWidth (fromIntegral n)
                                : callAttributes ct
 
-clustAttributes               :: EntClustType -> Attributes
-clustAttributes (ClassDefn c) = [ Label . StrLabel $ "Class: " ++ c
-                                , Style [SItem Filled [], SItem Rounded []]
-                                , FillColor $ ColorName "rosybrown1"
-                                ]
-clustAttributes (DataDefn d)  = [ Label . StrLabel $ "Data: " ++ d
-                                , Style [SItem Filled [], SItem Rounded []]
-                                , FillColor $ ColorName "papayawhip"
-                                ]
-clustAttributes (ClassInst d) = [ Label . StrLabel $ "Instance for: " ++ d
-                                , Style [SItem Filled [], SItem Rounded []]
-                                , FillColor $ ColorName "slategray1"
-                                ]
-clustAttributes DefInst       = [ Label . StrLabel $ "Default Instance"
+clustAttributes                 :: EntClustType -> Attributes
+clustAttributes (ClassDefn c)   = [ Label . StrLabel $ "Class: " ++ c
+                                  , Style [SItem Filled [], SItem Rounded []]
+                                  , FillColor $ ColorName "rosybrown1"
+                                  ]
+clustAttributes (DataDefn d)    = [ Label . StrLabel $ "Data: " ++ d
+                                  , Style [SItem Filled [], SItem Rounded []]
+                                  , FillColor $ ColorName "papayawhip"
+                                  ]
+clustAttributes (ClassInst _ d) = [ Label . StrLabel $ "Instance for: " ++ d
                                 , Style [SItem Filled [], SItem Rounded []]
                                 , FillColor $ ColorName "slategray1"
                                 ]
-clustAttributes (ModPath p)   = [ Label $ StrLabel p ]
+clustAttributes DefInst{}       = [ Label . StrLabel $ "Default Instance"
+                                  , Style [SItem Filled [], SItem Rounded []]
+                                  , FillColor $ ColorName "slategray1"
+                                  ]
+clustAttributes (ModPath p)     = [ Label $ StrLabel p ]
 
 clustAttributes' :: EntClustType -> [GlobalAttributes]
 clustAttributes' = return . GraphAttrs . clustAttributes

@@ -302,23 +302,23 @@ clusterEntity ln@(_,e) = setClust (N ln)
                    (Constructor d)     -> C $ DataDefn d
                    (RecordFunction d)  -> C $ DataDefn d
                    (ClassFunction c)   -> C $ ClassDefn c
-                   (DefaultInstance c) -> C (ClassDefn c) . C DefInst
-                   (ClassInstance c d) -> C (ClassDefn c) . C (ClassInst d)
+                   (DefaultInstance c) -> C (ClassDefn c) . C (DefInst c)
+                   (ClassInstance c d) -> C (ClassDefn c) . C (ClassInst c d)
                    _                   -> id
 
 data EntClustType = ClassDefn ClassName
                   | DataDefn DataType
-                  | ClassInst DataType
-                  | DefInst
+                  | ClassInst ClassName DataType
+                  | DefInst ClassName
                   | ModPath String
                     deriving (Eq, Ord, Show, Read)
 
-ctypeID               :: EntClustType -> Maybe GraphID
-ctypeID (ClassDefn c) = Just . Str $ "Class_" ++ escID c
-ctypeID (DataDefn d)  = Just . Str $ "Data_" ++ escID d
-ctypeID (ClassInst d) = Just . Str $ "Inst_For_" ++ escID d
-ctypeID DefInst       = Just . Str $ "DefaultInstance"
-ctypeID (ModPath p)   = Just . Str $ "Directory_" ++ escID p
+ctypeID                 :: EntClustType -> Maybe GraphID
+ctypeID (ClassDefn c)   = Just . Str $ "Class_" ++ escID c
+ctypeID (DataDefn d)    = Just . Str $ "Data_" ++ escID d
+ctypeID (ClassInst c d) = Just . Str $ "Class_" ++ escID c ++ "_Data_" ++ escID d
+ctypeID (DefInst c)     = Just . Str $ "DefaultInstance_" ++ escID c
+ctypeID (ModPath p)     = Just . Str $ "Directory_" ++ escID p
 
 escID :: String -> String
 escID = filter (\c -> isLetter c || isDigit c || c == '_')

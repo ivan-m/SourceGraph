@@ -128,6 +128,11 @@ exportedInner  = ColorName "goldenrod"
 leafNode       = ColorName "cyan"
 innerNode      = ColorName "bisque"
 
+nodeAttrs :: GlobalAttributes
+nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.5 0.2
+                      , Style [SItem Filled []]
+                      ]
+
 bool       :: a -> a -> Bool -> a
 bool t f b = if b then t else f
 
@@ -144,7 +149,7 @@ drawGraph gid mm dg = setID (Str gid)
                                           nAttr
                                           callAttributes'
     where
-      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph compactSame dg
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
@@ -162,7 +167,7 @@ drawGraph' gid dg = setID (Str gid)
                                        nAttr
                                        callAttributes'
     where
-      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       dg' = updateGraph (compactSame . collapseStructures') dg
       rs = getRoots dg
       ls = getLeaves dg
@@ -178,7 +183,7 @@ entityAttributes rs ls ex a mm (n,e@(Ent m nm t))
       , Shape $ shapeFor t
       -- , Color [ColorName cl]
       , FillColor $ entCol rs ls ex n
-      , Style [SItem Filled [], styleFor mm m]
+      , Style [styleFor mm m]
       ]
     where
       lbl = bool (nameOfModule m ++ "\\n" ++ nm) nm
@@ -259,7 +264,7 @@ drawClusters gid cf dg = setID (Str gid)
                                             nAttr
                                             callAttributes'
     where
-      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
                           , FillColor $ ColorName "wheat1"
                           ]
@@ -283,13 +288,12 @@ drawModules gid dg = setID (Str gid)
                                          (const [])
     where
       cID s = bool (Just $ Str s) Nothing $ (not . null) s
-      gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] --[GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] --[GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
       rs = getRoots dg
       ls = getLeaves dg
       es = getWRoots dg
       nAttr (n,m) = [ Label $ StrLabel m
                     , FillColor $ entCol rs ls es n
-                    , Style [SItem Filled []]
                     , Shape Tab
                     ]

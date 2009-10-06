@@ -36,6 +36,7 @@ import Analyse.Utils
 import Parsing.Types
 
 import Data.Graph.Analysis hiding (Bold)
+import qualified Data.Graph.Analysis.Reporting as R (DocInline(Bold))
 import Data.GraphViz.Types
 import Data.GraphViz.Attributes
 
@@ -62,7 +63,7 @@ sgLegend = [ esCall
 
 esCall, mods, esLoc, esData, esClass, esExp :: (DocGraph, DocInline)
 
-esCall = (dg', Text "Two normal functions with a function call.")
+esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
     where
       dg' = ("legend_call", Text "Function Call", dg)
       dg = mkLegendGraph ns es
@@ -73,7 +74,7 @@ esCall = (dg', Text "Two normal functions with a function call.")
       eAs = [Color [ColorName "black"]]
       es = [(1,2,eAs)]
 
-mods = (dg', Text "Two normal modules with a module import.")
+mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
     where
       dg' = ("legend_mods", Text "Module Import", dg)
       dg = mkLegendGraph ns es
@@ -83,7 +84,7 @@ mods = (dg', Text "Two normal modules with a module import.")
            ]
       es = [(1,2,[])]
 
-esLoc = (dg', Text "Entities from different modules.")
+esLoc = (dg', R.Bold $ Text "Entities from different modules.")
     where
       dg' = ("legend_loc", Text "From module", dg)
       dg = mkLegendGraph ns es
@@ -99,7 +100,7 @@ esLoc = (dg', Text "Entities from different modules.")
            ]
       es = []
 
-esData = (dg', Text "Data type declaration.")
+esData = (dg', R.Bold $ Text "Data type declaration.")
     where
       dg' = ("legend_data", Text "Data type declaration", dg)
       dg = mkLegendGraph ns es
@@ -111,24 +112,24 @@ esData = (dg', Text "Data type declaration.")
            ]
       es = [(2,1,[ Color [ColorName "magenta"], ArrowTail oDot, ArrowHead vee])]
 
-esClass = (dg', Text "Class and instance declarations.")
+esClass = (dg', R.Bold $ Text "Class and instance declarations.")
     where
       dg' = ("legend_class", Text "Class declaration", dg)
       dg = mkLegendGraph ns es
       nAs = [FillColor innerNode]
-      ns = [ (1, Label (StrLabel "Class function")
-                   : Shape DoubleOctagon : nAs)
-           , (2, Label (StrLabel "Default instance")
+      ns = [ (1, Label (StrLabel "Default instance")
                    : Shape Octagon : nAs)
+           , (2, Label (StrLabel "Class function")
+                   : Shape DoubleOctagon : nAs)
            , (3, Label (StrLabel "Instance for data type")
                    : Shape Octagon : nAs)
            ]
       eAs = [Dir NoDir]
-      es = [ (2,1, Color [ColorName "navy"] : eAs)
-           , (3,1, Color [ColorName "turquoise"] : eAs)
+      es = [ (1,2, Color [ColorName "navy"] : eAs)
+           , (3,2, Color [ColorName "turquoise"] : eAs)
            ]
 
-esExp = (dg', Text "Entity location classification.")
+esExp = (dg', R.Bold $ Text "Entity location classification.")
     where
       dg' = ("legend_loc2", Text "Entity Location", dg)
       dg = mkLegendGraph ns es
@@ -151,12 +152,15 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
                                , directedGraph = True
                                , graphID       = Nothing
                                , graphStatements
-                                   = DotStmts { attrStmts = [nodeAttrs]
+                                   = DotStmts { attrStmts = atts
                                               , subGraphs = []
                                               , nodeStmts = map mkN ns
                                               , edgeStmts = map mkE es
                                               }
                                }
     where
+      atts = [ GraphAttrs [RankDir FromLeft, OutputOrder NodesFirst]
+              , NodeAttrs [FontSize 10, Style [SItem Filled []]]
+              ]
       mkN (n,as)   = DotNode n as
       mkE (f,t,as) = DotEdge f t True as

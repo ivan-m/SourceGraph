@@ -125,7 +125,8 @@ cliqueAnal cd
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = onlyCrossModule . applyAlg cliquesIn $ collapseStructures cd
+      clqs = onlyCrossModule . applyAlg cliquesIn
+             . onlyNormalCalls $ collapseStructures cd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (fullName . snd)) clqs
       text = Text "The code has the following cross-module cliques:"
@@ -137,7 +138,8 @@ cycleAnal cd
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = onlyCrossModule . applyAlg uniqueCycles $ collapseStructures cd
+      cycs = onlyCrossModule . applyAlg uniqueCycles
+             . onlyNormalCalls $ collapseStructures cd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (fullName . snd)) cycs
       text = Text "The code has the following cross-module non-clique cycles:"
@@ -149,7 +151,8 @@ chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = onlyCrossModule . interiorChains $ collapseStructures cd
+      chns = onlyCrossModule . interiorChains
+             . onlyNormalCalls $ collapseStructures cd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (fullName . snd)) chns
       text = Text "The code has the following cross-module chains:"

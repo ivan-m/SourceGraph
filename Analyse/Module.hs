@@ -116,7 +116,7 @@ cliqueAnal (n,_,fd)
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = applyAlg cliquesIn $ collapseStructures fd
+      clqs = applyAlg cliquesIn . onlyNormalCalls $ collapseStructures fd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (name . snd)) clqs
       text = Text $ printf "The module %s has the following cliques:" n
@@ -129,7 +129,7 @@ cycleAnal (n,_,fd)
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = applyAlg uniqueCycles $ collapseStructures fd
+      cycs = applyAlg uniqueCycles . onlyNormalCalls $ collapseStructures fd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (name . snd)) cycs
       text = Text $ printf "The module %s has the following non-clique \
@@ -143,7 +143,7 @@ chainAnal (n,_,fd)
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = interiorChains $ collapseStructures fd
+      chns = interiorChains . onlyNormalCalls $ collapseStructures fd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (name . snd)) chns
       text = Text $ printf "The module %s has the following chains:" n

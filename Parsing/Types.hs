@@ -397,6 +397,10 @@ data CallType = NormalCall
               | RecordConstructor
                 deriving (Eq, Ord, Show, Read)
 
+isNormalCall            :: CallType -> Bool
+isNormalCall NormalCall = True
+isNormalCall _          = False
+
 data EntityType = Constructor DataType
                 | RecordFunction DataType -- (Maybe EntityName)
                                           -- same record function in

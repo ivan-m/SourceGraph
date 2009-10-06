@@ -257,7 +257,7 @@ analyseCode fp nm exps hms = do d <- today
                     , author         = a
                     , date           = d
                     , legend         = sgLegend
-                    , content        = msg : c g
+                    , content        = msg : linkMsg : c g
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
@@ -273,5 +273,7 @@ analyseCode fp nm exps hms = do d <- today
                       , Text " is "
                       , Bold $ Text "not"
                       , Text " a refactoring tool, and it's usage of Classes is\
-                              \ not yet perfect."
+                              \ still premature."
                       ]
+      linkMsg = Paragraph [Text "All graph visualisations link to larger \
+                                 \SVG versions of the same graph."]

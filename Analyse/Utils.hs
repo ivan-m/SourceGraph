@@ -100,17 +100,33 @@ mkCollapseTp p v mkE g = map lng2ne lngs
 groupSortBy   :: (Ord b) => (a -> b) -> [a] -> [[a]]
 groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
 
-toSet :: (Ord a) => LNGroup a -> Set a
-toSet = S.fromList . map snd
+getRoots :: GraphData a b -> IntSet
+getRoots = I.fromList . applyAlg rootsOf'
 
-getRoots :: (Ord a) => GraphData a b -> Set a
-getRoots = toSet . applyAlg rootsOf
+getLeaves :: GraphData a b -> IntSet
+getLeaves = I.fromList . applyAlg leavesOf'
 
-getLeaves :: (Ord a) => GraphData a b -> Set a
-getLeaves = toSet . applyAlg leavesOf
+getWRoots :: GraphData a b -> IntSet
+getWRoots = I.fromList . wantedRootNodes
 
-getWRoots :: (Ord a) => GraphData a b -> Set a
-getWRoots = toSet . wantedRoots
+entCol :: IntSet -> IntSet -> IntSet -> Node -> Color
+entCol rs ls es n
+    | isR && not isE = unExportedRoot
+    | isR            = exportedRoot
+    | isE            = exportedInner
+    | isL            = leafNode
+    | otherwise      = innerNode
+    where
+      isR = n `I.member` rs
+      isL = n `I.member` ls
+      isE = n `I.member` es
+
+unExportedRoot, exportedRoot, exportedInner, leafNode, innerNode :: Color
+unExportedRoot = ColorName "crimson"
+exportedRoot   = ColorName "gold"
+exportedInner  = ColorName "goldenrod"
+leafNode       = ColorName "cyan"
+innerNode      = ColorName "bisque"
 
 bool       :: a -> a -> Bool -> a
 bool t f b = if b then t else f
@@ -155,32 +171,18 @@ drawGraph' gid dg = setID (Str gid)
 
 -- | GetRoots, GetLeaves, Exported, @'Just' m@ if only one module, @'Nothing'@ if all.
 --   'True' if add explicit module name to all entities.
-entityAttributes :: Set Entity -> Set Entity -> Set Entity -> Bool
+entityAttributes :: IntSet -> IntSet -> IntSet -> Bool
                     -> Maybe ModName -> LNode Entity -> Attributes
-entityAttributes rs ls ex a mm (_,e@(Ent m n t))
+entityAttributes rs ls ex a mm (n,e@(Ent m nm t))
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
       -- , Color [ColorName cl]
-      , FillColor $ ColorName sh
+      , FillColor $ entCol rs ls ex n
       , Style [SItem Filled [], styleFor mm m]
       ]
     where
-      lbl = bool (nameOfModule m ++ "\\n" ++ n) n
+      lbl = bool (nameOfModule m ++ "\\n" ++ nm) nm
             $ not sameMod || a
-      -- Using the default X11 color names.
-      {-
-      isR = e `S.member` rs
-      isL = e `S.member` ls
-      -}
-      isE = e `S.member` ex
-      {-
-      cl | isR && not isE = "red"
-         | isR            = "mediumblue"
-         | isL            = "forestgreen"
-         | otherwise      = "black"
-       -}
-      sh | isE       = "gold"
-         | otherwise = "beige"
       sameMod = maybe True ((==) m) mm
 
 shapeFor                     :: EntityType -> Shape
@@ -283,22 +285,11 @@ drawModules gid dg = setID (Str gid)
       cID s = bool (Just $ Str s) Nothing $ (not . null) s
       gAttrs = [NodeAttrs [Margin . PVal $ PointD 0.5 0.2]] --[GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
-      rs = I.fromList $ applyAlg rootsOf' dg
-      ls = I.fromList $ applyAlg leavesOf' dg
-      es = I.fromList $ wantedRootNodes dg
+      rs = getRoots dg
+      ls = getLeaves dg
+      es = getWRoots dg
       nAttr (n,m) = [ Label $ StrLabel m
-                    , FillColor $ ColorName $ mCol rs ls es n
+                    , FillColor $ entCol rs ls es n
                     , Style [SItem Filled []]
                     , Shape Tab
                     ]
-
-mCol :: IntSet -> IntSet -> IntSet -> Node -> String
-mCol rs ls es n
-    | isR && not isE = "crimson"
-    | isR            = "gold"
-    | isL            = "cyan"
-    | otherwise      = "bisque"
-    where
-      isR = n `I.member` rs
-      isL = n `I.member` ls
-      isE = n `I.member` es

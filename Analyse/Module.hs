@@ -157,22 +157,14 @@ chainAnal (n,_,fd)
 rootAnal :: ModuleData -> Maybe DocElement
 rootAnal (n,_,fd)
     | asExpected = Nothing
-    | otherwise  = Just el
+    | otherwise  = Just $ Section sec unReachable
     where
-      (wntd, ntRs, ntWd) = classifyRoots $ collapseStructures fd
-      asExpected = null ntRs && null ntWd
-      rpt (s,ns) = if null ns
-                   then Nothing
-                   else Just [ Paragraph
-                               [Text
-                                $ concat ["These nodes are those that are "
-                                         , s, ":"]]
-                             , Paragraph [Emphasis . Text . showNodes' name $ map snd ns]]
-      ps = concat
-           $ mapMaybe rpt [ ("in the export list and roots",wntd)
-                          , ("in the export list but not roots",ntRs)
-                          , ("not in the export list but roots",ntWd)]
-      el = Section sec ps
+      (_, _, ntWd) = classifyRoots $ collapseStructures fd
+      ntWd' = map snd ntWd
+      asExpected = null ntWd
+      unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
+                    , Paragraph [Emphasis . Text $ showNodes' name ntWd']
+                    ]
       sec = Grouping [ Text "Root analysis of"
                      , Emphasis (Text n)]
 

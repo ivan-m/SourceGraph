@@ -165,22 +165,15 @@ chainAnal cd
 rootAnal :: HSData -> Maybe DocElement
 rootAnal cd
     | asExpected = Nothing
-    | otherwise  = Just $ Section sec ps
+    | otherwise  = Just $ Section sec unReachable
     where
-      (wntd, ntRs, ntWd) = classifyRoots cd
-      asExpected = null ntRs && null ntWd
-      rpt (s,ns) = if null ns
-                   then Nothing
-                   else Just [ Paragraph
-                               [Text
-                                $ concat ["These functions are those that are "
-                                         , s, ":"]]
-                             , Paragraph [Emphasis . Text . showNodes' fullName $ map snd ns]]
-      ps = concat
-           $ mapMaybe rpt [ ("available for use and roots",wntd)
-                          , ("available for use but not roots",ntRs)
-                          , ("not available for use but roots",ntWd)]
-      sec = Text "Import root analysis"
+      (_, _, ntWd) = classifyRoots $ collapseStructures cd
+      ntWd' = map snd ntWd
+      asExpected = null ntWd
+      unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
+                    , Paragraph [Emphasis . Text $ showNodes' fullName ntWd']
+                    ]
+      sec = Text "Overall root analysis"
 
 
 cycleCompAnal    :: HSData -> Maybe DocElement

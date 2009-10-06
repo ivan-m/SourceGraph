@@ -123,21 +123,14 @@ chainAnal imd
 rootAnal :: ModData -> Maybe DocElement
 rootAnal imd
     | asExpected = Nothing
-    | otherwise  = Just $ Section sec ps
+    | otherwise  = Just $ Section sec unReachable
     where
-      (wntd, ntRs, ntWd) = classifyRoots imd
-      asExpected = null ntRs && null ntWd
-      rpt (s,ns) = if null ns
-                   then Nothing
-                   else Just [ Paragraph
-                               [Text
-                                $ concat ["These modules are those that are "
-                                         , s, ":"]]
-                             , Paragraph [Emphasis . Text . showNodes' nameOfModule $ map snd ns]]
-      ps = concat
-           $ mapMaybe rpt [ ("in the export list and roots",wntd)
-                          , ("in the export list but not roots",ntRs)
-                          , ("not in the export list but roots",ntWd)]
+      (_, _, ntWd) = classifyRoots imd
+      ntWd' = map snd ntWd
+      asExpected = null ntWd
+      unReachable = [ Paragraph [Text "These modules are those that are unreachable:"]
+                    , Paragraph [Emphasis . Text $ showNodes' nameOfModule ntWd']
+                    ]
       sec = Text "Import root analysis"
 
 cycleCompAnal     :: ModData -> Maybe DocElement

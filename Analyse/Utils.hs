@@ -79,7 +79,7 @@ collapseStructures' = collapseGraphBy' [ collapseDatas
       collapseClasses = mkCollapseTp isClass getClassName mkClass
       mkClass m c = Ent m ("Class: " ++ c) (CollapsedClass c)
       collapseInsts = mkCollapseTp isInstance getInstance mkInst
-      mkInst m (c,d) = Ent m ("Class: " ++ c ++ "\\nData: " ++ d)
+      mkInst m (c,d) = Ent m ("Class: " ++ c ++ ", Data: " ++ d)
                              (CollapsedInstance c d)
 
 

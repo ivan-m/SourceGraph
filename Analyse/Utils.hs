@@ -127,7 +127,7 @@ leafNode       = ColorName "cyan"
 innerNode      = ColorName "bisque"
 
 nodeAttrs :: GlobalAttributes
-nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.5 0.2
+nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.4 0.1
                       , Style [SItem Filled []]
                       ]
 

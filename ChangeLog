@@ -1,5 +1,16 @@
-Changes since 0.5.2.0
-=====================
+Changes in 0.5.5.0
+==================
+
+* Class instances now drawn correctly.
+
+* Better colour support.
+
+* Now has a legend.
+
+* Clean up printing of cliques, etc.
+
+Changes in 0.5.2.0
+==================
 
 * Shift overall analysis to the top and per-module analysis to the
   end, as suggested by Duncan Coutts.
@@ -10,8 +21,8 @@ Changes since 0.5.2.0
 * Improve some graph drawing aspects (node margins, colours for module
   graphs, etc.).
 
-Changes since 0.5.1.0
-=====================
+Changes in 0.5.1.0
+==================
 
 * Add support for passing a single Haskell source file rather than a
   Cabal file as the argument, as requested by Curt Sampson.
@@ -21,8 +32,8 @@ Changes since 0.5.1.0
 * RelativeNeighbourhood doesn't provide good alternate modules and
   takes up too much runtime, and so has been removed.
 
-Changes since 0.5.0.0
-=====================
+Changes in 0.5.0.0
+==================
 
 * Re-write of parsing.
 

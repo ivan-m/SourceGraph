@@ -73,7 +73,7 @@ Executable SourceGraph {
                         random,
                         directory,
                         fgl,
-                        Graphalyze >= 0.7.0.0 && < 0.8.0.0,
+                        Graphalyze >= 0.8.0.0 && < 0.9.0.0,
                         graphviz >= 2999.6.0.0 && < 2999.7.0.0,
                         Cabal >= 1.6 && < 1.7,
                         haskell-src-exts >= 1.1.0 && < 1.2.0

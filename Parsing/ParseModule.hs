@@ -333,7 +333,7 @@ addCDecl c pb@PatBind{}     = do mn <- getModuleName
                                      iDcls = S.map snd cis `S.union` instDecls pm
                                      cis' = MS.fromList $ S.toList cis
                                      -- DefInst calls
-                                     mkiCl(t,f) = FC f t DefaultInstDeclaration
+                                     mkiCl (f,t) = FC f t DefaultInstDeclaration
                                      ciCls = MS.map mkiCl cis'
                                      -- Calls for that instance
                                      is = MS.map snd cis'
@@ -393,7 +393,7 @@ addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                    iDcls = S.map snd cis `S.union` instDecls pm
                                    cis' = MS.fromList $ S.toList cis
                                    -- DefInst calls
-                                   mkiCl(t,f) = FC f t InstanceDeclaration
+                                   mkiCl (f,t) = FC f t InstanceDeclaration
                                    ciCls = MS.map mkiCl cis'
                                    -- Calls for that instance
                                    is = MS.map snd cis'

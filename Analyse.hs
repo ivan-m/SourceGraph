@@ -125,8 +125,8 @@ esClass = (dg', R.Bold $ Text "Class and instance declarations.")
                    : Shape Octagon : nAs)
            ]
       eAs = [Dir NoDir]
-      es = [ (1,2, Color [ColorName "navy"] : eAs)
-           , (3,2, Color [ColorName "turquoise"] : eAs)
+      es = [ (2,1, Color [ColorName "navy"] : eAs)
+           , (2,3, Color [ColorName "turquoise"] : eAs)
            ]
 
 esExp = (dg', R.Bold $ Text "Entity location classification.")

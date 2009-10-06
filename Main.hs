@@ -256,6 +256,7 @@ analyseCode fp nm exps hms = do d <- today
                     , title          = t
                     , author         = a
                     , date           = d
+                    , legend         = sgLegend
                     , content        = msg : c g
                     }
       rt = fp </> programmeName

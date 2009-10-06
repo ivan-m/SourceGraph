@@ -39,8 +39,6 @@ import Data.GraphViz
 import Data.List(groupBy, sortBy)
 import Data.Maybe(isJust)
 import Data.Function(on)
-import qualified Data.Set as S
-import Data.Set(Set)
 import qualified Data.IntSet as I
 import Data.IntSet(IntSet)
 
@@ -178,7 +176,7 @@ drawGraph' gid dg = setID (Str gid)
 --   'True' if add explicit module name to all entities.
 entityAttributes :: IntSet -> IntSet -> IntSet -> Bool
                     -> Maybe ModName -> LNode Entity -> Attributes
-entityAttributes rs ls ex a mm (n,e@(Ent m nm t))
+entityAttributes rs ls ex a mm (n,(Ent m nm t))
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
       -- , Color [ColorName cl]

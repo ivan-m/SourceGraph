@@ -153,14 +153,23 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
                                , graphID       = Nothing
                                , graphStatements
                                    = DotStmts { attrStmts = atts
-                                              , subGraphs = []
-                                              , nodeStmts = map mkN ns
+                                              , subGraphs = [nSG]
+                                              , nodeStmts = []
                                               , edgeStmts = map mkE es
                                               }
                                }
     where
-      atts = [ GraphAttrs [RankDir FromLeft, OutputOrder NodesFirst]
-              , NodeAttrs [FontSize 10, Style [SItem Filled []]]
-              ]
+      atts = [ GraphAttrs [OutputOrder EdgesFirst]
+             , NodeAttrs [FontSize 10, Style [SItem Filled []]]
+             ]
+      sgAtts = [GraphAttrs [Rank MinRank]]
+      nSG = DotSG { isCluster     = False
+                  , subGraphID    = Nothing
+                  , subGraphStmts = DotStmts { attrStmts = sgAtts
+                                             , subGraphs = []
+                                             , nodeStmts = map mkN ns
+                                             , edgeStmts = []
+                                             }
+                  }
       mkN (n,as)   = DotNode n as
       mkE (f,t,as) = DotEdge f t True as

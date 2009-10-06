@@ -249,7 +249,7 @@ clustAttributes' = return . GraphAttrs . clustAttributes
 modClustAttrs   :: ModName -> [GlobalAttributes]
 modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
                               , Style [SItem Filled []]
-                              , FillColor $ ColorName "wheat1"
+                              , FillColor $ ColorName "lavender"
                               ]
                   ]
 
@@ -266,7 +266,7 @@ drawClusters gid cf dg = setID (Str gid)
     where
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
-                          , FillColor $ ColorName "wheat1"
+                          , FillColor $ ColorName "lavender"
                           ]
               ]
       dg' = updateGraph (compactSame . cf . collapseStructures') dg

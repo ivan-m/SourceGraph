@@ -181,7 +181,9 @@ entityAttributes rs ls ex a mm (n,(Ent m nm t))
       , Shape $ shapeFor t
       -- , Color [ColorName cl]
       , FillColor $ entCol rs ls ex n
-      , Style [styleFor mm m]
+        -- Have to re-set Filled because setting a new Style seems to
+        -- override global Style.
+      , Style [SItem Filled [], styleFor mm m]
       ]
     where
       lbl = bool (nameOfModule m ++ "\\n" ++ nm) nm

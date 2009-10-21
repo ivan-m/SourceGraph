@@ -52,7 +52,8 @@ Source-Repository head
 Executable SourceGraph {
 
     Main-Is:            Main.hs
-    Other-Modules:      Parsing,
+    Other-Modules:      CabalInfo,
+                        Parsing,
                         Parsing.ParseModule,
                         Parsing.State,
                         Parsing.Types,
@@ -75,6 +76,6 @@ Executable SourceGraph {
                         fgl,
                         Graphalyze >= 0.8.0.0 && < 0.9.0.0,
                         graphviz >= 2999.6.0.0 && < 2999.7.0.0,
-                        Cabal >= 1.6 && < 1.7,
+                        Cabal >= 1.8 && < 1.9,
                         haskell-src-exts >= 1.1.0 && < 1.2.0
 }

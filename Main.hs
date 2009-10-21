@@ -30,18 +30,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Main where
 
+import CabalInfo
 import Parsing
 import Parsing.Types(nameOfModule)
 import Analyse
 
 import Data.Graph.Analysis
 import Data.Graph.Analysis.Reporting.Pandoc
-
-import Distribution.Package
-import Distribution.PackageDescription hiding (author)
-import Distribution.PackageDescription.Parse
-import Distribution.ModuleName(toFilePath)
-import Distribution.Verbosity
 
 import Data.Char(toLower)
 import Data.List(nub)
@@ -60,6 +55,7 @@ import System.FilePath( dropFileName
                       , (<.>))
 import System.Random(newStdGen)
 import System.Environment(getArgs)
+import Control.Arrow(second)
 import Control.Monad(liftM)
 import Control.Exception.Extensible(SomeException(..), try)
 
@@ -97,7 +93,7 @@ getPkgInfo [] = do putErrLn "Please provide either a Cabal file \
                             \or a Haskell source file as an argument."
                    return Nothing
 getPkgInfo [f]
-    | isCabalFile f   = withF parseCabal
+    | isCabalFile f   = withF parseCabal'
     | isHaskellFile f = withF parseMain
     where
       withF func = do ex <- doesFileExist f
@@ -110,30 +106,8 @@ getPkgInfo _        = do putErrLn "Please provide a single Cabal \
                                   \or Haskell source file as an argument."
                          return Nothing
 
-parseCabal    :: FilePath -> IO (Maybe (String, [ModName]))
-parseCabal fp = do gpd <- try $ readPackageDescription silent fp
-                   case gpd of
-                     (Right gpd')           -> return (Just $ parse gpd')
-                     (Left SomeException{}) -> return Nothing
-    where
-      parse pd = (nm, exps')
-          where
-            cbl = packageDescription pd
-            nm = pName . pkgName $ package cbl
-            pName (PackageName nm') = nm'
-            cexes :: [Executable]
-            cexes = map (condTreeData .snd) $ condExecutables pd
-            exes = executables cbl
-            clib = condLibrary pd
-            lib = library cbl
-            moduleNames = map toFilePath
-            exps | not $ null cexes = nub $ map (dropExtension . modulePath) cexes
-                 | not $ null exes  = nub . map dropExtension . moduleNames $ exeModules cbl
-                 | isJust clib      = moduleNames . exposedModules . condTreeData
-                                      $ fromJust clib
-                 | isJust lib       = moduleNames . exposedModules $ fromJust lib
-                 | otherwise        = error "No exposed modules"
-            exps' = map fpToModule exps
+parseCabal' :: FilePath -> IO (Maybe (String, [ModName]))
+parseCabal' = liftM (fmap (second (map fpToModule))) . parseCabal
 
 isCabalFile :: FilePath -> Bool
 isCabalFile = hasExt "cabal"

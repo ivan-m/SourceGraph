@@ -39,8 +39,8 @@ import Data.GraphViz
 import Data.List(groupBy, sortBy)
 import Data.Maybe(isJust)
 import Data.Function(on)
-import qualified Data.IntSet as I
-import Data.IntSet(IntSet)
+import qualified Data.Set as S
+import Data.Set(Set)
 
 -- -----------------------------------------------------------------------------
 
@@ -103,16 +103,16 @@ onlyNormalCalls = updateGraph go
 groupSortBy   :: (Ord b) => (a -> b) -> [a] -> [[a]]
 groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
 
-getRoots :: GraphData a b -> IntSet
-getRoots = I.fromList . applyAlg rootsOf'
+getRoots :: GraphData a b -> Set Node
+getRoots = S.fromList . applyAlg rootsOf'
 
-getLeaves :: GraphData a b -> IntSet
-getLeaves = I.fromList . applyAlg leavesOf'
+getLeaves :: GraphData a b -> Set Node
+getLeaves = S.fromList . applyAlg leavesOf'
 
-getWRoots :: GraphData a b -> IntSet
-getWRoots = I.fromList . wantedRootNodes
+getWRoots :: GraphData a b -> Set Node
+getWRoots = S.fromList . wantedRootNodes
 
-entCol :: IntSet -> IntSet -> IntSet -> Node -> Color
+entCol :: Set Node -> Set Node -> Set Node -> Node -> Color
 entCol rs ls es n
     | isR && not isE = unExportedRoot
     | isR            = exportedRoot
@@ -120,9 +120,9 @@ entCol rs ls es n
     | isL            = leafNode
     | otherwise      = innerNode
     where
-      isR = n `I.member` rs
-      isL = n `I.member` ls
-      isE = n `I.member` es
+      isR = n `S.member` rs
+      isL = n `S.member` ls
+      isE = n `S.member` es
 
 unExportedRoot, exportedRoot, exportedInner, leafNode, innerNode :: Color
 unExportedRoot = ColorName "crimson"
@@ -179,7 +179,7 @@ drawGraph' gid dg = setID (Str gid)
 
 -- | GetRoots, GetLeaves, Exported, @'Just' m@ if only one module, @'Nothing'@ if all.
 --   'True' if add explicit module name to all entities.
-entityAttributes :: IntSet -> IntSet -> IntSet -> Bool
+entityAttributes :: Set Node -> Set Node -> Set Node -> Bool
                     -> Maybe ModName -> LNode Entity -> Attributes
 entityAttributes rs ls ex a mm (n,(Ent m nm t))
     = [ Label $ StrLabel lbl

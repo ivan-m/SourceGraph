@@ -617,9 +617,9 @@ getExp (ParComp e qsss) = liftM2 MS.union (getExp e) . liftM MS.unions
                           $ mapM getQStmts qsss
 getExp (ExpTypeSig _ e _) = getExp e
 getExp (VarQuote qn) = return $ maybeEnt qn
-getExp (Proc p e) = do (pd,pc) <- getPat p
-                       c <- getExp e
-                       return $ pc `MS.union` defElsewhere c pd
+getExp (Proc _ p e) = do (pd,pc) <- getPat p
+                         c <- getExp e
+                         return $ pc `MS.union` defElsewhere c pd
 getExp (RightArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
 getExp (LeftArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
 getExp (RightArrHighApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)

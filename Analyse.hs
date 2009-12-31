@@ -65,7 +65,7 @@ esCall, mods, esLoc, esData, esClass, esExp :: (DocGraph, DocInline)
 
 esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
     where
-      dg' = ("legend_call", Text "Function Call", dg)
+      dg' = DG "legend_call" (Text "Function Call") dg
       dg = mkLegendGraph ns es
       nAs = [Shape BoxShape, FillColor innerNode]
       ns = [ (1, Label (StrLabel "f") : nAs)
@@ -76,7 +76,7 @@ esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
 
 mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
     where
-      dg' = ("legend_mods", Text "Module Import", dg)
+      dg' = DG "legend_mods" (Text "Module Import") dg
       dg = mkLegendGraph ns es
       nAs = [Shape Tab, FillColor innerNode]
       ns = [ (1, Label (StrLabel "Foo") : nAs)
@@ -86,7 +86,7 @@ mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
 
 esLoc = (dg', R.Bold $ Text "Entities from different modules.")
     where
-      dg' = ("legend_loc", Text "From module", dg)
+      dg' = DG "legend_loc" (Text "From module") dg
       dg = mkLegendGraph ns es
       nAs = [FillColor innerNode]
       ns = [ (1, Label (StrLabel "Current module")
@@ -102,7 +102,7 @@ esLoc = (dg', R.Bold $ Text "Entities from different modules.")
 
 esData = (dg', R.Bold $ Text "Data type declaration.")
     where
-      dg' = ("legend_data", Text "Data type declaration", dg)
+      dg' = DG "legend_data" (Text "Data type declaration") dg
       dg = mkLegendGraph ns es
       nAs = [FillColor innerNode]
       ns = [ (1, Label (StrLabel "Constructor")
@@ -114,7 +114,7 @@ esData = (dg', R.Bold $ Text "Data type declaration.")
 
 esClass = (dg', R.Bold $ Text "Class and instance declarations.")
     where
-      dg' = ("legend_class", Text "Class declaration", dg)
+      dg' = DG "legend_class" (Text "Class declaration") dg
       dg = mkLegendGraph ns es
       nAs = [FillColor innerNode]
       ns = [ (1, Label (StrLabel "Default instance")
@@ -131,7 +131,7 @@ esClass = (dg', R.Bold $ Text "Class and instance declarations.")
 
 esExp = (dg', R.Bold $ Text "Entity location classification.")
     where
-      dg' = ("legend_loc2", Text "Entity Location", dg)
+      dg' = DG "legend_loc2" (Text "Entity Location") dg
       dg = mkLegendGraph ns es
       ns = [ (1, [ Label (StrLabel "Un-exported root entity")
                  , FillColor unExportedRoot])

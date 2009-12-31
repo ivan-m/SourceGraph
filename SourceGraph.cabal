@@ -73,6 +73,7 @@ Executable SourceGraph {
                         filepath,
                         random,
                         directory,
+                        mtl,
                         fgl,
                         Graphalyze >= 0.9.0.0 && < 0.10.0.0,
                         graphviz >= 2999.8.0.0 && < 2999.9.0.0,

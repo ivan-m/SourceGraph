@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 {-
 Copyright (C) 2009 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
 
@@ -30,16 +32,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Parsing.State
     ( PState
     , runPState
+    , get
+    , put
     , getModules
     , getModuleNames
     , getLookup
-    , getParsedModule
     , getFutureParsedModule
     , getModuleName
-    , putParsedModule
     ) where
 
 import Parsing.Types
+
+import Control.Monad.RWS
 
 -- -----------------------------------------------------------------------------
 
@@ -49,61 +53,46 @@ runPState hms mns pm st = pm'
     where
       -- Tying the knot
       el = internalLookup pm'
-      mp = MP hms mns el pm pm'
-      pm' = parsedModule $ execState st mp
+      mp = MD hms mns el pm'
+      (pm', _) = execRWS (runPS st) mp pm
 
-data ModuleParsing = MP { moduleLookup :: ParsedModules
-                        , modNmsLookup :: ModuleNames
-                        , entityLookup :: EntityLookup
-                        , parsedModule :: ParsedModule
-                        , futureParsedModule :: ParsedModule
-                        }
+data ModuleData = MD { moduleLookup       :: ParsedModules
+                     , modNmsLookup       :: ModuleNames
+                     , entityLookup       :: EntityLookup
+                     , futureParsedModule :: ParsedModule
+                     }
+
+type ModuleWrite = ()
 
 newtype PState value
-    = PS { runState :: ModuleParsing -> (value, ModuleParsing) }
+  = PS { runPS :: RWS ModuleData ModuleWrite ParsedModule value }
+    -- Note: don't derive MonadReader, etc. as don't want anything
+    -- outside this module to get the actual types used.
+  deriving (Monad, MonadState ParsedModule, MonadWriter ModuleWrite)
 
-instance Monad PState where
-    return v = PS (\ps -> (v,ps))
+newtype MyPState value
+    = MPS { runMyState :: ModuleData -> (value, ModuleData) }
 
-    x >>= f = PS $ \ps -> let (r, ps') = runState x ps
-                          in runState (f r) ps'
+instance Monad MyPState where
+    return v = MPS (\ps -> (v,ps))
 
+    x >>= f = MPS $ \ps -> let (r, ps') = runMyState x ps
+                           in runMyState (f r) ps'
+
+asks' :: (ModuleData -> a) -> PState a
+asks' = PS . asks
 
 getModules :: PState ParsedModules
-getModules = gets moduleLookup
+getModules = asks' moduleLookup
 
 getModuleNames :: PState ModuleNames
-getModuleNames = gets modNmsLookup
+getModuleNames = asks' modNmsLookup
 
 getLookup :: PState EntityLookup
-getLookup = gets entityLookup
-
-getParsedModule :: PState ParsedModule
-getParsedModule = gets parsedModule
+getLookup = asks' entityLookup
 
 getFutureParsedModule :: PState ParsedModule
-getFutureParsedModule = gets futureParsedModule
+getFutureParsedModule = asks' futureParsedModule
 
 getModuleName :: PState ModName
-getModuleName = gets (moduleName . parsedModule)
-
-putParsedModule    :: ParsedModule -> PState ()
-putParsedModule pm = modify (\ s -> s { parsedModule = pm } )
-
-
-get :: PState ModuleParsing
-get = PS (\s -> (s,s))
-
-put   :: ModuleParsing -> PState ()
-put s = PS (const ((), s))
-
-execState   :: PState value -> ModuleParsing -> ModuleParsing
-execState s = snd . runState s
-
-modify   :: (ModuleParsing -> ModuleParsing) -> PState ()
-modify f = do s <- get
-              put (f s)
-
-gets   :: (ModuleParsing -> value) -> PState value
-gets f = do s <- get
-            return (f s)
+getModuleName = gets moduleName

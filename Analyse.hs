@@ -71,7 +71,7 @@ esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
       ns = [ (1, Label (StrLabel "f") : nAs)
            , (2, Label (StrLabel "g") : nAs)
            ]
-      eAs = [Color [ColorName "black"]]
+      eAs = [Color [X11Color Black]]
       es = [(1,2,eAs)]
 
 mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
@@ -110,7 +110,7 @@ esData = (dg', R.Bold $ Text "Data type declaration.")
            , (2, Label (StrLabel "Record function")
                    : Shape Component : nAs)
            ]
-      es = [(2,1,[ Color [ColorName "magenta"], ArrowTail oDot, ArrowHead vee])]
+      es = [(2,1,[ Color [X11Color Magenta], ArrowTail oDot, ArrowHead vee])]
 
 esClass = (dg', R.Bold $ Text "Class and instance declarations.")
     where
@@ -125,8 +125,8 @@ esClass = (dg', R.Bold $ Text "Class and instance declarations.")
                    : Shape Octagon : nAs)
            ]
       eAs = [Dir NoDir]
-      es = [ (2,1, Color [ColorName "navy"] : eAs)
-           , (2,3, Color [ColorName "turquoise"] : eAs)
+      es = [ (2,1, Color [X11Color Navy] : eAs)
+           , (2,3, Color [X11Color Turquoise] : eAs)
            ]
 
 esExp = (dg', R.Bold $ Text "Entity location classification.")

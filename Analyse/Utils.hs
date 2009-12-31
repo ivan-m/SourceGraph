@@ -125,11 +125,11 @@ entCol rs ls es n
       isE = n `S.member` es
 
 unExportedRoot, exportedRoot, exportedInner, leafNode, innerNode :: Color
-unExportedRoot = ColorName "crimson"
-exportedRoot   = ColorName "gold"
-exportedInner  = ColorName "goldenrod"
-leafNode       = ColorName "cyan"
-innerNode      = ColorName "bisque"
+unExportedRoot = X11Color Crimson
+exportedRoot   = X11Color Gold
+exportedInner  = X11Color Goldenrod
+leafNode       = X11Color Cyan
+innerNode      = X11Color Bisque
 
 nodeAttrs :: GlobalAttributes
 nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.4 0.1
@@ -213,14 +213,14 @@ styleFor _  ExtMod{}     = SItem Dashed []
 styleFor _  UnknownMod   = SItem Dotted []
 
 callAttributes                        :: CallType -> Attributes
-callAttributes NormalCall             = [ Color [ColorName "black"]]
-callAttributes InstanceDeclaration    = [ Color [ColorName "navy"]
+callAttributes NormalCall             = [ Color [X11Color Black]]
+callAttributes InstanceDeclaration    = [ Color [X11Color Navy]
                                         , Dir NoDir
                                         ]
-callAttributes DefaultInstDeclaration = [ Color [ColorName "turquoise"]
+callAttributes DefaultInstDeclaration = [ Color [X11Color Turquoise]
                                         , Dir NoDir
                                         ]
-callAttributes RecordConstructor      = [ Color [ColorName "magenta"]
+callAttributes RecordConstructor      = [ Color [X11Color Magenta]
                                         , ArrowTail oDot
                                         , ArrowHead vee
                                         ]
@@ -232,19 +232,19 @@ callAttributes' (_,_,(n,ct)) = PenWidth (fromIntegral n)
 clustAttributes                 :: EntClustType -> Attributes
 clustAttributes (ClassDefn c)   = [ Label . StrLabel $ "Class: " ++ c
                                   , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ ColorName "rosybrown1"
+                                  , FillColor $ X11Color RosyBrown1
                                   ]
 clustAttributes (DataDefn d)    = [ Label . StrLabel $ "Data: " ++ d
                                   , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ ColorName "papayawhip"
+                                  , FillColor $ X11Color PapayaWhip
                                   ]
 clustAttributes (ClassInst _ d) = [ Label . StrLabel $ "Instance for: " ++ d
                                 , Style [SItem Filled [], SItem Rounded []]
-                                , FillColor $ ColorName "slategray1"
+                                , FillColor $ X11Color SlateGray1
                                 ]
 clustAttributes DefInst{}       = [ Label . StrLabel $ "Default Instance"
                                   , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ ColorName "slategray1"
+                                  , FillColor $ X11Color SlateGray1
                                   ]
 clustAttributes (ModPath p)     = [ Label $ StrLabel p ]
 
@@ -254,7 +254,7 @@ clustAttributes' = return . GraphAttrs . clustAttributes
 modClustAttrs   :: ModName -> [GlobalAttributes]
 modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
                               , Style [SItem Filled []]
-                              , FillColor $ ColorName "lavender"
+                              , FillColor $ X11Color Lavender
                               ]
                   ]
 
@@ -271,7 +271,7 @@ drawClusters gid cf dg = setID (Str gid)
     where
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
-                          , FillColor $ ColorName "lavender"
+                          , FillColor $ X11Color Lavender
                           ]
               ]
       dg' = updateGraph (compactSame . cf . collapseStructures') dg

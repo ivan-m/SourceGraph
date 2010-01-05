@@ -179,13 +179,6 @@ virtClass _                                = False
 addImplicit :: GraphData Entity e -> GraphData Entity e
 addImplicit = addRootsBy isImplicitExport
 
-findUnderscored :: GraphData Entity e -> Set Node
-findUnderscored = S.fromList
-                  . map node
-                  . applyAlg (filterNodes (const p))
-    where
-      p = underscoredEntity . label
-
 implicitExports :: GraphData Entity e -> Set Node
 implicitExports = S.fromList
                   . map node
@@ -195,9 +188,6 @@ implicitExports = S.fromList
 --   Also updates wantedRootNodes.
 collapseStructures :: HSData -> HSData
 collapseStructures = collapseAndUpdate collapseFuncs
-
-collapseStructures' :: HSGraph -> HSGraph
-collapseStructures' = collapseAndReplace collapseFuncs
 
 collapseFuncs :: [HSGraph -> [(NGroup, Entity)]]
 collapseFuncs = [ collapseDatas
@@ -222,9 +212,9 @@ mkCollapseTp p v mkE g = map lng2ne lngs
       lnas = map addA lns
       lngs = groupSortBy snd lnas
       lng2ne lng = ( map (fst . fst) lng
-                   , mkEnt $ head lng
+                   , mkEnt' $ head lng
                    )
-      mkEnt ((_,e),a) = mkE (inModule e) a
+      mkEnt' ((_,e),a) = mkE (inModule e) a
       addA ln@(_,l) = (ln, v $ eType l)
 
 -- -----------------------------------------------------------------------------

@@ -32,7 +32,6 @@ module Analyse(analyse, sgLegend) where
 import Analyse.Module
 import Analyse.Imports
 import Analyse.Everything
-import Analyse.Utils
 import Analyse.Colors
 import Parsing.Types
 

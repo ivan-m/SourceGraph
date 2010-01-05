@@ -38,8 +38,7 @@ import Distribution.ModuleName(toFilePath)
 import Distribution.Verbosity(silent)
 import Distribution.Simple.Compiler(compilerId)
 import Distribution.Simple.GHC(configure)
-import Distribution.Simple.Program( ProgramConfiguration
-                                  , defaultProgramConfiguration)
+import Distribution.Simple.Program(defaultProgramConfiguration)
 import Distribution.System(buildPlatform)
 
 import Data.List(nub)

@@ -39,8 +39,7 @@ import Data.Graph.Analysis
 import Data.Graph.Analysis.Reporting.Pandoc
 
 import Data.Char(toLower)
-import Data.List(nub)
-import Data.Maybe(isJust, fromJust, catMaybes)
+import Data.Maybe(catMaybes)
 import qualified Data.Map as M
 import System.IO(hPutStrLn, stderr)
 import System.Directory( getCurrentDirectory
@@ -48,7 +47,6 @@ import System.Directory( getCurrentDirectory
                        , doesFileExist
                        , getDirectoryContents)
 import System.FilePath( dropFileName
-                      , dropExtension
                       , takeExtension
                       , isPathSeparator
                       , (</>)

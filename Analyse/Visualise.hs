@@ -41,7 +41,6 @@ import Data.GraphViz
 import Data.Maybe(isJust, maybe)
 import Data.List(find)
 import qualified Data.Set as S
-import Data.Set(Set)
 
 -- -----------------------------------------------------------------------------
 

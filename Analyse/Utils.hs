@@ -29,18 +29,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Analyse.Utils where
 
-import Parsing.Types
-
 import Data.Graph.Analysis hiding (Bold)
 import Data.Graph.Inductive hiding (graphviz)
 
-import Data.GraphViz
-
-import Data.List(groupBy, sortBy, isPrefixOf)
-import Data.Maybe(isJust)
+import Data.List(groupBy, sortBy)
 import Data.Function(on)
-import qualified Data.Set as S
-import Data.Set(Set)
 
 -- -----------------------------------------------------------------------------
 

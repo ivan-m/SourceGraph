@@ -115,8 +115,8 @@ instance ModuleItem ImportDecl where
 -- | Guesstimate the correct 'Entity' designation for those from
 --   external modules.
 createEnt                      :: ModName -> ImportSpec -> [Entity]
-createEnt mn (IVar n)          = [Ent mn (nameOf n) NormalEntity]
-createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
+createEnt mn (IVar n)          = [mkEnt mn (nameOf n) NormalEntity]
+createEnt mn (IThingWith n cs) = map (\c -> mkEnt mn c (eT c)) cs'
     where
       n' = nameOf n
       cs' = map nameOf cs
@@ -253,7 +253,7 @@ instance ModuleItem Decl where
              -- We can have more than one definition from here, unlike
              -- for Matches.
              let vs = S.map snd d
-                 mkE v = Ent mn v NormalEntity
+                 mkE v = mkEnt mn v NormalEntity
                  es = S.map mkE vs
                  es' = MS.fromList $ S.toList es
                  mkFC e o = FC e (lookupEntity el o) NormalCall
@@ -275,16 +275,16 @@ unQConDecl (QualConDecl _ _ _ cd) = cd
 addConstructor                 :: DataType -> ConDecl -> PState EntityLookup
 addConstructor d (ConDecl n _) = do m <- getModuleName
                                     let n' = nameOf n
-                                        e = Ent m n' (Constructor d)
+                                        e = mkEnt m n' (Constructor d)
                                     return $ M.singleton (Nothing,n') e
 addConstructor d (InfixConDecl _ n _) = do m <- getModuleName
                                            let n' = nameOf n
-                                               e = Ent m n' (Constructor d)
+                                               e = mkEnt m n' (Constructor d)
                                            return $ M.singleton (Nothing,n') e
 addConstructor d (RecDecl n rbs) = do m <- getModuleName
                                       pm <- get
                                       let n' = nameOf n
-                                          ce = Ent m n' (Constructor d)
+                                          ce = mkEnt m n' (Constructor d)
                                           rs = map nameOf $ concatMap fst rbs
                                           res = map (mkRe m) rs
                                           es = ce : res
@@ -292,7 +292,7 @@ addConstructor d (RecDecl n rbs) = do m <- getModuleName
                                       put $ addFcs pm fcs
                                       return $ mkEl es
     where
-      mkRe m r = Ent m r (RecordFunction d)
+      mkRe m r = mkEnt m r (RecordFunction d)
       mkFc c r = FC r c RecordConstructor
       addFcs pm fcs = pm { funcCalls = fcs `MS.union` funcCalls pm }
 
@@ -302,7 +302,7 @@ addConstructor d (RecDecl n rbs) = do m <- getModuleName
 addGConstructors     :: ModName -> DataType -> [GadtDecl] -> EntityLookup
 addGConstructors m d = mkEl . map addGConst
     where
-      addGConst (GadtDecl _ n _) = Ent m (nameOf n) (Constructor d)
+      addGConst (GadtDecl _ n _) = mkEnt m (nameOf n) (Constructor d)
 
 -- -----------------------------------------------------------------------------
 -- Class declaration
@@ -316,7 +316,7 @@ addCDecl                    :: ClassName -> Decl -> PState (Maybe EntityLookup)
 addCDecl c (TypeSig _ ns _) = do m <- getModuleName
                                  let ns' = map nameOf ns
                                      eTp = ClassFunction c
-                                     es = map (\n -> Ent m n eTp) ns'
+                                     es = map (\n -> mkEnt m n eTp) ns'
                                  return $ Just (mkEl es)
 addCDecl c (FunBind ms)     = mapM_ (addCMatch c) ms >> return Nothing
 
@@ -326,8 +326,8 @@ addCDecl c pb@PatBind{}     = do mn <- getModuleName
                                  (d,cs) <- getDecl pb
                                  let vs = S.map snd d
                                      -- Class-based entities
-                                     mkI n = Ent mn n (DefaultInstance c)
-                                     mkC n = Ent mn n (ClassFunction c)
+                                     mkI n = mkEnt mn n (DefaultInstance c)
+                                     mkC n = mkEnt mn n (ClassFunction c)
                                      cis = S.map (\n -> (mkC n, mkI n)) vs
                                      -- Instance Decls
                                      iDcls = S.map snd cis `S.union` instDecls pm
@@ -386,7 +386,7 @@ addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                (df,cs) <- getDecl pb
                                let vs = S.map snd df
                                    -- Class-based entities
-                                   mkI n = Ent mn n (ClassInstance c d)
+                                   mkI n = mkEnt mn n (ClassInstance c d)
                                    mkC = classFuncLookup c el
                                    cis = S.map (\n -> (mkC n, mkI n)) vs
                                    -- Instance Decls
@@ -447,9 +447,10 @@ addFuncCalls et m = do mn <- getModuleName
                        pm <- get
                        (d,c) <- getMatch m
                        let nm = snd $ S.findMin d
-                           f = Ent { inModule = mn
-                                   , name     = nm -- Assume non-qualified...
-                                   , eType    = et
+                           f = Ent { inModule  = mn
+                                   , name      = nm -- Assume non-qualified...
+                                   , eType     = et
+                                   , isVirtual = False
                                    }
                            cs = MS.map (mkFC el f) c
                            pm' = pm { funcCalls = cs `MS.union` funcCalls pm }

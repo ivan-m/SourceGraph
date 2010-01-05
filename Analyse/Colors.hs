@@ -31,12 +31,23 @@ module Analyse.Colors where
 
 import Data.GraphViz.Attributes.Colors
 
-unAccessibleColor   = X11Color Crimson   :: Color
-exportedRootColor   = X11Color Gold      :: Color
-exportedInnerColor  = X11Color Goldenrod :: Color
-implicitExportColor = X11Color Khaki     :: Color
-leafColor           = X11Color Cyan      :: Color
-defaultNodeColor    = X11Color Bisque    :: Color
+unAccessibleColor :: Color
+unAccessibleColor = X11Color Crimson
+
+exportedRootColor :: Color
+exportedRootColor = X11Color Gold
+
+exportedInnerColor :: Color
+exportedInnerColor = X11Color Goldenrod
+
+implicitExportColor :: Color
+implicitExportColor = X11Color Khaki
+
+leafColor :: Color
+leafColor = X11Color Cyan
+
+defaultNodeColor :: Color
+defaultNodeColor = X11Color Bisque
 
 clusterBackground :: Color
 clusterBackground = X11Color Lavender

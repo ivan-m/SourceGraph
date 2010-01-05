@@ -33,6 +33,7 @@ import Analyse.Module
 import Analyse.Imports
 import Analyse.Everything
 import Analyse.Utils
+import Analyse.Colors
 import Parsing.Types
 
 import Data.Graph.Analysis hiding (Bold)
@@ -67,7 +68,7 @@ esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
     where
       dg' = DG "legend_call" (Text "Function Call") dg
       dg = mkLegendGraph ns es
-      nAs = [Shape BoxShape, FillColor innerNode]
+      nAs = [Shape BoxShape, FillColor defaultNodeColor]
       ns = [ (1, Label (StrLabel "f") : nAs)
            , (2, Label (StrLabel "g") : nAs)
            ]
@@ -78,7 +79,7 @@ mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
     where
       dg' = DG "legend_mods" (Text "Module Import") dg
       dg = mkLegendGraph ns es
-      nAs = [Shape Tab, FillColor innerNode]
+      nAs = [Shape Tab, FillColor defaultNodeColor]
       ns = [ (1, Label (StrLabel "Foo") : nAs)
            , (2, Label (StrLabel "Bar") : nAs)
            ]
@@ -88,7 +89,7 @@ esLoc = (dg', R.Bold $ Text "Entities from different modules.")
     where
       dg' = DG "legend_loc" (Text "From module") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor innerNode]
+      nAs = [FillColor defaultNodeColor]
       ns = [ (1, Label (StrLabel "Current module")
                    : Style [SItem Bold []] : nAs)
            , (2, Label (StrLabel "Other project module")
@@ -104,7 +105,7 @@ esData = (dg', R.Bold $ Text "Data type declaration.")
     where
       dg' = DG "legend_data" (Text "Data type declaration") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor innerNode]
+      nAs = [FillColor defaultNodeColor]
       ns = [ (1, Label (StrLabel "Constructor")
                    : Shape Box3D : nAs)
            , (2, Label (StrLabel "Record function")
@@ -116,7 +117,7 @@ esClass = (dg', R.Bold $ Text "Class and instance declarations.")
     where
       dg' = DG "legend_class" (Text "Class declaration") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor innerNode]
+      nAs = [FillColor defaultNodeColor]
       ns = [ (1, Label (StrLabel "Default instance")
                    : Shape Octagon : nAs)
            , (2, Label (StrLabel "Class function")
@@ -133,16 +134,19 @@ esExp = (dg', R.Bold $ Text "Entity location classification.")
     where
       dg' = DG "legend_loc2" (Text "Entity Location") dg
       dg = mkLegendGraph ns es
-      ns = [ (1, [ Label (StrLabel "Un-exported root entity")
-                 , FillColor unExportedRoot])
-           , (2, [ Label (StrLabel "Exported root entity")
-                 , FillColor exportedRoot])
-           , (3, [ Label (StrLabel "Exported non-root entity")
-                 , FillColor exportedInner])
-           , (4, [ Label (StrLabel "Leaf entity")
-                 , FillColor leafNode])
-           , (5, [ Label (StrLabel "Normal entity")
-                 , FillColor innerNode])
+      ns = zip [1..]
+           [ [ Label (StrLabel "Un-accessible entity")
+             , FillColor unAccessibleColor]
+           , [ Label (StrLabel "Exported root entity")
+             , FillColor exportedRootColor]
+           , [ Label (StrLabel "Exported non-root entity")
+             , FillColor exportedInnerColor]
+           , [ Label (StrLabel "Implicitly exported entity")
+             , FillColor implicitExportColor]
+           , [ Label (StrLabel "Leaf entity")
+             , FillColor leafColor]
+           , [ Label (StrLabel "Normal entity")
+             , FillColor defaultNodeColor]
            ]
       es = []
 

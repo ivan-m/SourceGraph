@@ -31,6 +31,8 @@ module Analyse.Module(analyseModules) where
 
 import Parsing.Types
 import Analyse.Utils
+import Analyse.GraphRepr
+import Analyse.Visualise
 
 import Data.Graph.Analysis
 
@@ -39,13 +41,14 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.MultiSet as MS
 import Text.Printf(printf)
+import Control.Arrow(second)
 
 -- -----------------------------------------------------------------------------
 
 -- Helper types
 
 -- | Shorthand type
-type ModuleData = (String, ModName, HSData)
+type ModuleData = (String, ModName, HData')
 
 -- -----------------------------------------------------------------------------
 
@@ -78,7 +81,7 @@ analyseModule hm = if n > 1
 
 -- | Convert the module to the /Graphalyze/ format.
 moduleToGraph    :: ParsedModule -> (Int,ModuleData)
-moduleToGraph hm = (n,(nameOfModule mn, mn, fd))
+moduleToGraph hm = (n,(nameOfModule mn, mn, mkHData' fd))
     where
       mn = moduleName hm
       n = applyAlg noNodes fd
@@ -103,7 +106,9 @@ componentAnal (n,_,fd)
     | single comp = Nothing
     | otherwise   = Just el
     where
-      comp = applyAlg componentsOf $ collapseStructures fd
+      -- Use compactData as the number of edges don't matter, just
+      -- whether or not an edge exists.
+      comp = applyAlg componentsOf . compactData $ collapsedHData fd
       len = length comp
       el = Section sec [Paragraph [Text text]]
       sec = Grouping [ Text "Component analysis of"
@@ -116,7 +121,8 @@ cliqueAnal (n,_,fd)
     | null clqs = Nothing
     | otherwise = Just el
     where
-      clqs = applyAlg cliquesIn . onlyNormalCalls $ collapseStructures fd
+      clqs = applyAlg cliquesIn . onlyNormalCalls' . compactData
+             $ collapsedHData fd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (name . snd)) clqs
       text = Text $ printf "The module %s has the following cliques:" n
@@ -129,7 +135,8 @@ cycleAnal (n,_,fd)
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = applyAlg uniqueCycles . onlyNormalCalls $ collapseStructures fd
+      cycs = applyAlg uniqueCycles . onlyNormalCalls' . compactData
+             $ collapsedHData fd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (name . snd)) cycs
       text = Text $ printf "The module %s has the following non-clique \
@@ -143,7 +150,8 @@ chainAnal (n,_,fd)
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = interiorChains . onlyNormalCalls $ collapseStructures fd
+      chns = interiorChains . onlyNormalCalls' . compactData
+             $ collapsedHData fd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (name . snd)) chns
       text = Text $ printf "The module %s has the following chains:" n
@@ -159,8 +167,9 @@ rootAnal (n,_,fd)
     | asExpected = Nothing
     | otherwise  = Just $ Section sec unReachable
     where
-      (_, _, ntWd) = classifyRoots $ collapseStructures fd
-      ntWd' = map snd ntWd
+      fd' = compactData $ origHData fd
+      ntWd = S.toList . unaccessibleNodes $ addImplicit fd'
+      ntWd' = applyAlg getLabels fd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
                     , Paragraph [Emphasis . Text $ showNodes' name ntWd']
@@ -173,8 +182,8 @@ coreAnal (n,m,fd) = if isEmpty core
                     then Nothing
                     else Just el
     where
-      fd' = updateGraph coreOf $ collapseStructures fd
-      core = graph fd'
+      fd' = second (mapData (updateGraph coreOf)) fd
+      core = graph . graphData $ origHData fd'
       p = n ++ "_core"
       lbl = unwords ["Core of", n]
       hdr = Paragraph [Text "The core of a module can be thought of as \
@@ -208,7 +217,7 @@ collapseAnal (n,m,fd) = if (trivialCollapse gc)
 cycleCompAnal          :: ModuleData -> Maybe DocElement
 cycleCompAnal (n,_,fd) = Just $ Section sec pars
     where
-      cc = cyclomaticComplexity $ collapseStructures fd
+      cc = cyclomaticComplexity . graphData $ collapsedHData fd
       sec = Grouping [ Text "Cyclomatic Complexity of"
                        , Emphasis (Text n)]
       pars = [Paragraph [text], Paragraph [textAfter, link]]

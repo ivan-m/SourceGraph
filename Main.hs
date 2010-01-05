@@ -231,7 +231,7 @@ analyseCode fp nm exps hms = do d <- today
                     , author         = a
                     , date           = d
                     , legend         = sgLegend
-                    , content        = msg : linkMsg : c g
+                    , content        = msg : implicitMsg : linkMsg : c g
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
@@ -249,5 +249,13 @@ analyseCode fp nm exps hms = do d <- today
                       , Text " a refactoring tool, and it's usage of Classes is\
                               \ still premature."
                       ]
+      implicitMsg = Paragraph [ Text "Implicitly exported entities refer to\
+                                      \ class methods that are instantiated\
+                                      \ but defined elsewhere, or:"
+                              , DocLink (Text "entities whose names start with\
+                                               \ an underscore")
+                                        (Web "http://www.haskell.org/ghc/docs/latest/html/users_guide/options-sanity.html")
+                              , Text "."
+                              ]
       linkMsg = Paragraph [Text "All graph visualisations link to larger \
                                  \SVG versions of the same graph."]

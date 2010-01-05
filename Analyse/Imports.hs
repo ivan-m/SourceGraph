@@ -31,11 +31,14 @@ module Analyse.Imports (analyseImports) where
 
 import Parsing.Types
 import Analyse.Utils
+import Analyse.GraphRepr
+import Analyse.Visualise
 
 import Data.Graph.Analysis
 
 import Data.Maybe(mapMaybe)
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Text.Printf(printf)
 
 -- -----------------------------------------------------------------------------
@@ -55,8 +58,8 @@ analyseImports exps hm = Section sec elems
                               , chainAnal
                               ]
 
-importsToGraph          :: [ModName] -> ParsedModules -> ModData
-importsToGraph exps pms = importData params
+importsToGraph          :: [ModName] -> ParsedModules -> MData
+importsToGraph exps pms = mkMData $ importData params
     where
       params = Params { dataPoints    = M.keys pms
                       , relationships = moduleImports pms
@@ -71,31 +74,31 @@ moduleImports = concatMap imps . M.elems
                 . M.keys $ imports pm
       toRel m m' = (m,m',())
 
-graphOf     :: ModData -> Maybe DocElement
+graphOf     :: MData -> Maybe DocElement
 graphOf imd = Just $ Section sec [gi]
     where
       sec = Text "Visualisation of imports"
       gi = GraphImage $ DG "imports" (Text lbl) (drawModules lbl imd)
       lbl = "Import visualisation"
 
-componentAnal :: ModData -> Maybe DocElement
+componentAnal :: MData -> Maybe DocElement
 componentAnal imd
     | single comp = Nothing
     | otherwise   = Just el
     where
-      comp = applyAlg componentsOf imd
+      comp = applyAlg componentsOf $ graphData imd
       len = length comp
       el = Section sec [Paragraph [Text text]]
       sec = Text "Import component analysis"
       text = printf "The imports have %d components.  \
                      \You may wish to consider splitting the code up." len
 
-cycleAnal :: ModData -> Maybe DocElement
+cycleAnal :: MData -> Maybe DocElement
 cycleAnal imd
     | null cycs = Nothing
     | otherwise = Just el
     where
-      cycs = applyAlg cyclesIn imd
+      cycs = applyAlg cyclesIn $ graphData imd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (nameOfModule' . snd)) cycs
       text = Text "The imports have the following cycles:"
@@ -105,12 +108,12 @@ cycleAnal imd
            $ Paragraph [text] : cycs' ++ [Paragraph [textAfter]]
       sec = Text "Cycle analysis of imports"
 
-chainAnal :: ModData -> Maybe DocElement
+chainAnal :: MData -> Maybe DocElement
 chainAnal imd
     | null chns = Nothing
     | otherwise = Just el
     where
-      chns = interiorChains imd
+      chns = interiorChains $ graphData imd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (nameOfModule . snd)) chns
       text = Text "The imports have the following chains:"
@@ -120,23 +123,24 @@ chainAnal imd
            [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       sec = Text "Import chain analysis"
 
-rootAnal :: ModData -> Maybe DocElement
+rootAnal :: MData -> Maybe DocElement
 rootAnal imd
     | asExpected = Nothing
     | otherwise  = Just $ Section sec unReachable
     where
-      (_, _, ntWd) = classifyRoots imd
-      ntWd' = map snd ntWd
+      imd' = graphData imd
+      ntWd = S.toList . unaccessibleNodes $ imd'
+      ntWd' = applyAlg getLabels imd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These modules are those that are unreachable:"]
                     , Paragraph [Emphasis . Text $ showNodes' nameOfModule ntWd']
                     ]
       sec = Text "Import root analysis"
 
-cycleCompAnal     :: ModData -> Maybe DocElement
+cycleCompAnal     :: MData -> Maybe DocElement
 cycleCompAnal imd = Just $ Section sec pars
     where
-      cc = cyclomaticComplexity imd
+      cc = cyclomaticComplexity $ graphData imd
       sec = Text "Cyclomatic Complexity of imports"
       pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text

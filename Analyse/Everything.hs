@@ -31,6 +31,8 @@ module Analyse.Everything(analyseEverything) where
 
 import Parsing.Types
 import Analyse.Utils
+import Analyse.GraphRepr
+import Analyse.Visualise
 
 import Data.Graph.Analysis
 
@@ -41,6 +43,9 @@ import qualified Data.Set as S
 import qualified Data.MultiSet as MS
 import Text.Printf(printf)
 import System.Random(RandomGen)
+import Control.Arrow(second)
+
+-- -----------------------------------------------------------------------------
 
 -- | Performs analysis of the entire codebase.
 analyseEverything           :: (RandomGen g) => g -> [ModName] -> ParsedModules
@@ -62,8 +67,8 @@ analyseEverything g exps hm = Section sec elems
                              ]
 
 
-codeToGraph          :: [ModName] -> ParsedModules -> HSData
-codeToGraph exps pms = importData params
+codeToGraph          :: [ModName] -> ParsedModules -> HData'
+codeToGraph exps pms = mkHData' $ importData params
     where
       pms' = M.elems pms
       exps' = S.toList . S.unions
@@ -78,14 +83,14 @@ codeToGraph exps pms = importData params
                       , directed      = True
                       }
 
-graphOf    :: HSData -> Maybe DocElement
+graphOf    :: HData' -> Maybe DocElement
 graphOf cd = Just $ Section sec [gc]
     where
       sec = Text "Visualisation of the entire software"
       gc = GraphImage $ DG "code" (Text lbl) (drawGraph lbl Nothing cd)
       lbl = "Entire Codebase"
 
-clustersOf      :: (RandomGen g) => g -> HSData -> Maybe DocElement
+clustersOf      :: (RandomGen g) => g -> HData' -> Maybe DocElement
 clustersOf g cd = Just $ Section sec [ text, gc, textAfter
                                      , blank, cwMsg, cw] -- , blank, rngMsg, rng]
     where
@@ -108,51 +113,53 @@ clustersOf g cd = Just $ Section sec [ text, gc, textAfter
       rngLbl = "Relative Neighbourhood module suggestions"
 -}
 
-componentAnal :: HSData -> Maybe DocElement
+componentAnal :: HData' -> Maybe DocElement
 componentAnal cd
     | single comp = Nothing
     | otherwise   = Just $ Section sec [Paragraph [Text text]]
     where
-      comp = applyAlg componentsOf $ collapseStructures cd
+      -- Use compactData as the number of edges don't matter, just
+      -- whether or not an edge exists.
+      comp = applyAlg componentsOf . compactData $ collapsedHData cd
       len = length comp
       sec = Text "Function component analysis"
       text = printf "The functions are split up into %d components.  \
                      \You may wish to consider splitting the code up \
                      \into multiple libraries." len
 
-cliqueAnal :: HSData -> Maybe DocElement
+cliqueAnal :: HData' -> Maybe DocElement
 cliqueAnal cd
     | null clqs = Nothing
     | otherwise = Just el
     where
       clqs = onlyCrossModule . applyAlg cliquesIn
-             . onlyNormalCalls $ collapseStructures cd
+             . onlyNormalCalls' . compactData $ collapsedHData cd
       clqs' = return . Itemized
               $ map (Paragraph . return . Text . showNodes' (fullName . snd)) clqs
       text = Text "The code has the following cross-module cliques:"
       el = Section sec $ Paragraph [text] : clqs'
       sec = Text "Overall clique analysis"
 
-cycleAnal :: HSData -> Maybe DocElement
+cycleAnal :: HData' -> Maybe DocElement
 cycleAnal cd
     | null cycs = Nothing
     | otherwise = Just el
     where
       cycs = onlyCrossModule . applyAlg uniqueCycles
-             . onlyNormalCalls $ collapseStructures cd
+             . onlyNormalCalls' . compactData $ collapsedHData cd
       cycs' = return . Itemized
               $ map (Paragraph . return . Text . showCycle' (fullName . snd)) cycs
       text = Text "The code has the following cross-module non-clique cycles:"
       el = Section sec $ Paragraph [text] : cycs'
       sec = Text "Overall cycle analysis"
 
-chainAnal :: HSData -> Maybe DocElement
+chainAnal :: HData' -> Maybe DocElement
 chainAnal cd
     | null chns = Nothing
     | otherwise = Just el
     where
       chns = onlyCrossModule . interiorChains
-             . onlyNormalCalls $ collapseStructures cd
+             . onlyNormalCalls' . compactData $ collapsedHData cd
       chns' = return . Itemized
               $ map (Paragraph . return . Text . showPath' (fullName . snd)) chns
       text = Text "The code has the following cross-module chains:"
@@ -162,13 +169,14 @@ chainAnal cd
            [Paragraph [text]] ++ chns' ++ [Paragraph [textAfter]]
       sec = Text "Overall chain analysis"
 
-rootAnal :: HSData -> Maybe DocElement
+rootAnal :: HData' -> Maybe DocElement
 rootAnal cd
     | asExpected = Nothing
     | otherwise  = Just $ Section sec unReachable
     where
-      (_, _, ntWd) = classifyRoots $ collapseStructures cd
-      ntWd' = map snd ntWd
+      cd' = compactData $ origHData cd
+      ntWd = S.toList . unaccessibleNodes $ addImplicit cd'
+      ntWd' = applyAlg getLabels cd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
                     , Paragraph [Emphasis . Text $ showNodes' fullName ntWd']
@@ -176,10 +184,10 @@ rootAnal cd
       sec = Text "Overall root analysis"
 
 
-cycleCompAnal    :: HSData -> Maybe DocElement
+cycleCompAnal    :: HData' -> Maybe DocElement
 cycleCompAnal cd = Just $ Section sec pars
     where
-      cc = cyclomaticComplexity $ collapseStructures cd
+      cc = cyclomaticComplexity . graphData $ collapsedHData cd
       sec = Text "Overall Cyclomatic Complexity"
       pars = [Paragraph [text], Paragraph [textAfter, link]]
       text = Text
@@ -190,13 +198,13 @@ cycleCompAnal cd = Just $ Section sec pars
                      (Web "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
 
 
-coreAnal    :: HSData -> Maybe DocElement
+coreAnal    :: HData' -> Maybe DocElement
 coreAnal cd = if isEmpty core
               then Nothing
               else Just $ Section sec [hdr, anal]
     where
-      cd' = updateGraph coreOf $ collapseStructures cd
-      core = graph cd'
+      cd' = second (mapData (updateGraph coreOf)) cd
+      core = graph . graphData $ origHData cd'
       lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \
                              \the part where all the work is actually done."]
@@ -207,7 +215,7 @@ coreAnal cd = if isEmpty core
 -- Comment out until can work out a way of dealing with [Entity] for
 -- the node-label type.
 {-
-collapseAnal    :: HSData -> Maybe DocElement
+collapseAnal    :: HData' -> Maybe DocElement
 collapseAnal cd = if (trivialCollapse gc)
                   then Nothing
                   else Just $ Section sec [hdr, gr]

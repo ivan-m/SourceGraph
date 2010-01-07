@@ -35,6 +35,7 @@ module Analyse.GraphRepr
        ( -- * General stuff
          GData(..)
        , mapData
+       , mapData'
          -- * Entity-based
        , HData'
        , mkHData'

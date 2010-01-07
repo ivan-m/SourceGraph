@@ -170,7 +170,7 @@ drawClusters gid cf dg = setID (Str gid)
                                             nAttr
                                             callAttributes'
     where
-      dg' = mapData (updateGraph cf) $ collapsedHData dg
+      dg' = mapData' cf $ collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
                           , FillColor clusterBackground

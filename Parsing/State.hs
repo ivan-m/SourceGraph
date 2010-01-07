@@ -74,15 +74,6 @@ newtype PState value
     -- outside this module to get the actual types used.
   deriving (Monad, MonadState ParsedModule, MonadWriter ModuleWrite)
 
-newtype MyPState value
-    = MPS { runMyState :: ModuleData -> (value, ModuleData) }
-
-instance Monad MyPState where
-    return v = MPS (\ps -> (v,ps))
-
-    x >>= f = MPS $ \ps -> let (r, ps') = runMyState x ps
-                           in runMyState (f r) ps'
-
 asks' :: (ModuleData -> a) -> PState a
 asks' = PS . asks
 

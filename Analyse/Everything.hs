@@ -57,6 +57,7 @@ analyseEverything g exps hm = Section sec elems
                              , clustersOf g
                              -- , collapseAnal
                              , coreAnal
+                             , levelAnal
                              , cycleCompAnal
                              , rootAnal
                              , componentAnal
@@ -210,6 +211,16 @@ coreAnal = fmap mkDE . makeCore
       lbl = "Overall core"
       hdr = coreDesc "software"
       sec = Text "Overall Core analysis"
+
+levelAnal    :: HData' -> Maybe DocElement
+levelAnal cd = Just $ Section sec [hdr, lvls]
+  where
+    lvls = GraphImage $ DG p (Text lbl) (drawLevels lbl Nothing cd)
+    p = "code_levels"
+    lbl = unwords ["Levels within software"]
+    sec = Grouping [Text "Visualisation of levels in the software"]
+    hdr = Paragraph [Text "Visualises how far away from the exported root\
+                           \ entities an entity is."]
 
 
 -- Comment out until can work out a way of dealing with [Entity] for

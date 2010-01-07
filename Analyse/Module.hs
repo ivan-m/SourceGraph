@@ -68,6 +68,7 @@ analyseModule hm = if n > 1
       elems = mapMaybe ($fd) [ graphOf
                              -- , collapseAnal
                              , coreAnal
+                             , levelAnal
                              , cycleCompAnal
                              , rootAnal
                              , componentAnal
@@ -190,6 +191,18 @@ coreAnal (n,m,fd) = fmap mkDE $ makeCore fd
       hdr = coreDesc "a module"
       sec = Grouping [ Text "Core analysis of"
                      , Emphasis (Text n)]
+
+levelAnal          :: ModuleData -> Maybe DocElement
+levelAnal (n,m,fd) = Just $ Section sec [hdr, lvls]
+  where
+    lvls = GraphImage $ DG p (Text lbl) (drawLevels lbl (Just m) fd)
+    p = n ++ "_levels"
+    lbl = unwords ["Levels within", n]
+    sec = Grouping [ Text "Visualisation of levels in"
+                   , Emphasis (Text n)
+                   ]
+    hdr = Paragraph [Text "Visualises how far away from the exported root\
+                           \ entities an entity is."]
 
 -- Comment out until can work out a way of dealing with [Entity] for
 -- the node-label type.

@@ -178,6 +178,33 @@ drawClusters gid cf dg = setID (Str gid)
               ]
       nAttr = entityAttributes dg' True Nothing
 
+drawLevels           :: String -> Maybe ModName -> HData' -> DotGraph Node
+drawLevels gid mm hd = setID (Str gid)
+                       $ graphvizClusters dg'
+                                          gAttrs
+                                          levelAttr
+                                          nAttr
+                                          callAttributes'
+  where
+    hd' = collapsedHData hd
+    dg = compactData hd'
+    wrs = wantedRootNodes dg
+    dg' = updateGraph (levelGraphFrom wrs) dg
+    gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+    nAttr = entityAttributes hd' (not $ isJust mm) mm
+
+levelAttr :: Int -> [GlobalAttributes]
+levelAttr l
+  | l < minLevel  = atts "Inaccessible entities"
+  | l == minLevel = atts "Exported root entities"
+  | otherwise     = atts $ "Level = " ++ show l
+    where
+      atts t = [GraphAttrs [ Label (StrLabel t)
+                           , Style [SItem Filled []]
+                           , FillColor clusterBackground
+                           ]
+               ]
+
 -- -----------------------------------------------------------------------------
 -- Dealing with inter-module imports, etc.
 

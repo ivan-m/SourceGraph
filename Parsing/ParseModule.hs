@@ -383,11 +383,12 @@ addIDecl c d (FunBind ms) = liftM S.fromList $ mapM (addIMatch c d) ms
 addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                el <- getLookup
                                pm <- get
+                               pmf <- getFutureParsedModule
                                (df,cs) <- getDecl pb
                                let vs = S.map snd df
                                    -- Class-based entities
                                    mkI n = Ent mn n (ClassInstance c d)
-                                   mkC = classFuncLookup c el
+                                   mkC = classFuncLookup c pmf
                                    cis = S.map (\n -> (mkC n, mkI n)) vs
                                    -- Instance Decls
                                    iDcls = S.map snd cis `S.union` instDecls pm
@@ -410,11 +411,11 @@ addIDecl c d pb@PatBind{} = do mn <- getModuleName
 addIDecl _ _ _            = return S.empty
 
 addIMatch       :: ClassName -> DataType -> Match -> PState Entity
-addIMatch c d m = do el <- getLookup
+addIMatch c d m = do pmf <- getFutureParsedModule
                      fi <- addFuncCalls (ClassInstance c d) m
                      pm <- get
                      let cfn = name fi
-                         cf = classFuncLookup c el cfn
+                         cf = classFuncLookup c pmf cfn
                          ic = FC cf fi InstanceDeclaration
                          pm' = pm { instDecls = S.insert fi $ instDecls pm
                                   , funcCalls = MS.insert ic $ funcCalls pm
@@ -422,12 +423,24 @@ addIMatch c d m = do el <- getLookup
                      put pm'
                      return cf
 
-classFuncLookup        :: ClassName -> EntityLookup -> EntityName -> Entity
-classFuncLookup c el n = case inModule e of
-                           UnknownMod -> e { eType = ClassFunction c }
-                           _          -> e
+-- Must use the future ParsedModule.  Can't use internalLookup, since
+-- it includes the virtuals and results in infinite loops as it tries
+-- to lookup values that it creates...
+--
+-- Note: we assume that if a class method is explicitly imported from
+-- an external module, then it will be obvious that it is a class
+-- method because otherwise the class won't be imported either.
+classFuncLookup         :: ClassName -> ParsedModule -> EntityName -> Entity
+classFuncLookup c pmf n = case inModule e of
+                            UnknownMod -> e { eType = ClassFunction c }
+                            _          -> e
     where
-      e = lookupEntity' el n
+      e = lookupEntity' knownMethods n
+      knownMethods = localMethods `M.union` importMethods
+      localMethods = fromMaybe M.empty $ c `M.lookup` classDecls pmf
+      importMethods = M.filter (isMethod . eType) $ allImports pmf
+      isMethod (ClassFunction c') = c == c'
+      isMethod _                  = False
 
 -- -----------------------------------------------------------------------------
 -- For top-level functions

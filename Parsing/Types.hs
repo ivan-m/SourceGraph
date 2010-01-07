@@ -96,10 +96,11 @@ mkEl = M.fromList . map (\e -> ((Nothing, name e), e))
 -- | The 'EntityLookup' for use within a module; combines imports with
 --   what is defined in the module.
 internalLookup    :: ParsedModule -> EntityLookup
-internalLookup pm = M.union imported internal
+internalLookup pm = M.unions [imported, internal, virtuals]
     where
-      imported = importsLookup . M.elems $ imports pm
+      imported = allImports pm
       internal = exportableLookup pm
+      virtuals = mkLookup' $ virtualEnts pm
 
 -- | The defined stand-alone 'Entity's from this module.
 exportableLookup    :: ParsedModule -> EntityLookup
@@ -261,6 +262,9 @@ data ModImport = I { fromModule :: ModName
 
 importsLookup :: [ModImport] -> EntityLookup
 importsLookup = M.unions . map importLookup
+
+allImports :: ParsedModule -> EntityLookup
+allImports = importsLookup . M.elems . imports
 
 importLookup :: ModImport -> EntityLookup
 importLookup hi

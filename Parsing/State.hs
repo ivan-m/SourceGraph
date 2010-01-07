@@ -44,7 +44,6 @@ module Parsing.State
 import Parsing.Types
 
 import Control.Monad.RWS
-import Control.Arrow(first)
 
 -- -----------------------------------------------------------------------------
 
@@ -55,10 +54,7 @@ runPState hms mns pm st = pm'
       -- Tying the knot
       el = internalLookup pm'
       mp = MD hms mns el pm'
-      (pm', _) = first setVirtual' $ execRWS (runPS st) mp pm
-
-setVirtual'    :: ParsedModule -> ParsedModule
-setVirtual' pm = pm { virtualEnts = setVirtual $ virtualEnts pm }
+      (pm', _) = execRWS (runPS st) mp pm
 
 data ModuleData = MD { moduleLookup       :: ParsedModules
                      , modNmsLookup       :: ModuleNames

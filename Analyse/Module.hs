@@ -41,7 +41,6 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.MultiSet as MS
 import Text.Printf(printf)
-import Control.Arrow(second)
 
 -- -----------------------------------------------------------------------------
 
@@ -81,11 +80,12 @@ analyseModule hm = if n > 1
 
 -- | Convert the module to the /Graphalyze/ format.
 moduleToGraph    :: ParsedModule -> (Int,ModuleData)
-moduleToGraph hm = (n,(nameOfModule mn, mn, mkHData' fd))
+moduleToGraph hm = (n,(nameOfModule mn, mn, mkHData' vs fd))
     where
       mn = moduleName hm
       n = applyAlg noNodes fd
       fd = importData params
+      vs = virtualEnts hm
       params = Params { dataPoints    = S.toList $ internalEnts hm
                       , relationships = MS.toList . MS.map callToRel
                                         $ funcCalls hm
@@ -168,7 +168,7 @@ rootAnal (n,_,fd)
     | otherwise  = Just $ Section sec unReachable
     where
       fd' = compactData $ origHData fd
-      ntWd = S.toList . unaccessibleNodes $ addImplicit fd'
+      ntWd = S.toList . unaccessibleNodes $ addImplicit (origVirts fd) fd'
       ntWd' = applyAlg getLabels fd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]

@@ -43,7 +43,6 @@ import qualified Data.Set as S
 import qualified Data.MultiSet as MS
 import Text.Printf(printf)
 import System.Random(RandomGen)
-import Control.Arrow(second)
 
 -- -----------------------------------------------------------------------------
 
@@ -68,7 +67,7 @@ analyseEverything g exps hm = Section sec elems
 
 
 codeToGraph          :: [ModName] -> ParsedModules -> HData'
-codeToGraph exps pms = mkHData' $ importData params
+codeToGraph exps pms = mkHData' vs $ importData params
     where
       pms' = M.elems pms
       exps' = S.toList . S.unions
@@ -77,6 +76,8 @@ codeToGraph exps pms = mkHData' $ importData params
              $ map internalEnts pms'
       calls = MS.toList . MS.map callToRel . MS.unions
               $ map funcCalls pms'
+      vs = S.filter (not . internalEntity)
+           . S.unions $ map virtualEnts pms'
       params = Params { dataPoints    = ents
                       , relationships = calls
                       , roots         = exps'
@@ -175,7 +176,7 @@ rootAnal cd
     | otherwise  = Just $ Section sec unReachable
     where
       cd' = compactData $ origHData cd
-      ntWd = S.toList . unaccessibleNodes $ addImplicit cd'
+      ntWd = S.toList . unaccessibleNodes $ addImplicit (origVirts cd) cd'
       ntWd' = applyAlg getLabels cd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]

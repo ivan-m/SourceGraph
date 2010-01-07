@@ -39,7 +39,9 @@ module Analyse.GraphRepr
        , HData'
        , mkHData'
        , origHData
+       , origVirts
        , collapsedHData
+       , collapsedVirts
        , updateOrig
        , updateCollapsed
        , HData
@@ -52,7 +54,6 @@ module Analyse.GraphRepr
        , addImplicit
        , onlyNormalCalls
        , onlyNormalCalls'
-       , collapseStructures
          -- * Import-based
        , MData
        , mkMData
@@ -69,6 +70,9 @@ import Data.Graph.Inductive
 import Data.GraphViz.Attributes.Colors(Color)
 
 import Data.List(isPrefixOf)
+import Data.Maybe(mapMaybe)
+import qualified Data.Map as M
+import Data.Map(Map)
 import qualified Data.Set as S
 import Data.Set(Set)
 import Control.Monad(liftM2)
@@ -123,37 +127,50 @@ getWRoots = S.fromList . wantedRootNodes
 -- -----------------------------------------------------------------------------
 
 data HData' = HD' { origHData      :: HData
+                  , origVirts      :: Set Entity
                   , collapsedHData :: HData
+                  , collapsedVirts :: Set Entity
                   }
 
-mkHData'    :: HSData -> HData'
-mkHData' hs = HD' (mkHData hs) (mkHData $ collapseStructures hs)
+mkHData'       :: Set Entity -> HSData -> HData'
+mkHData' vs hs = HD' { origHData      = mkHData vs hs
+                     , origVirts      = vs
+                     , collapsedHData = mkHData vs' hs'
+                     , collapsedVirts = vs'
+                     }
+  where
+    (hs', repLookup) = collapseStructures hs
+    vs' = S.fromList
+          . mapMaybe (flip M.lookup repLookup)
+          $ S.toList vs
 
+-- | Doesn't touch origVirts
 updateOrig       :: (HSGraph -> HSGraph) -> HData' -> HData'
 updateOrig f hd' = hd' { origHData = mapData' f $ origHData hd' }
 
+-- | Doesn't touch collapsedVirts
 updateCollapsed       :: (HSGraph -> HSGraph) -> HData' -> HData'
 updateCollapsed f hd' = hd' { collapsedHData = mapData' f $ collapsedHData hd' }
 
 
 type HData = GData Entity CallType
 
-mkHData :: HSData -> HData
-mkHData = mkGData entColors
+mkHData    :: Set Entity -> HSData -> HData
+mkHData vs = mkGData (entColors vs)
 
 type HSData = GraphData Entity CallType
 type HSClustData = GraphData (GenCluster Entity) CallType
 type HSGraph = AGr Entity CallType
 type HSClustGraph = AGr (GenCluster Entity) CallType
 
-entColors    :: GraphData Entity e -> [(Set Node, Color)]
-entColors hd = (us, unAccessibleColor)
-               : (imps, implicitExportColor)
-               : commonColors hd
+entColors       :: Set Entity -> GraphData Entity e -> [(Set Node, Color)]
+entColors vs hd = (us, unAccessibleColor)
+                  : (imps, implicitExportColor)
+                  : commonColors hd
   where
-    hd' = addImplicit hd
+    hd' = addImplicit vs hd
     us = unaccessibleNodes hd'
-    imps = implicitExports hd
+    imps = implicitExports vs hd
 
 -- -----------------------------------------------------------------------------
 
@@ -168,8 +185,8 @@ onlyNormalCalls' = updateGraph go
   where
     go = elfilter (isNormalCall . snd)
 
-isImplicitExport :: LNode Entity -> Bool
-isImplicitExport = liftM2 (||) underscoredEntity virtClass . label
+isImplicitExport    :: Set Entity -> LNode Entity -> Bool
+isImplicitExport vs = liftM2 (||) underscoredEntity (virtClass vs) . label
 
 -- | Various warnings about unused/unexported entities are suppressed
 --   if they start with an underscore:
@@ -177,25 +194,26 @@ isImplicitExport = liftM2 (||) underscoredEntity virtClass . label
 underscoredEntity :: Entity -> Bool
 underscoredEntity = isPrefixOf "_" . name
 
-virtClass                                  :: Entity -> Bool
-virtClass Ent{eType = e, isVirtual = True} = case e of
-                                               ClassFunction{}  -> True
-                                               CollapsedClass{} -> True
-                                               _                -> False
-virtClass _                                = False
+virtClass      :: Set Entity -> Entity -> Bool
+virtClass vs e = case eType e of
+                   ClassFunction{}  -> isVirt
+                   CollapsedClass{} -> isVirt
+                   _                -> False
+  where
+    isVirt = e `S.member` vs
 
-addImplicit :: GraphData Entity e -> GraphData Entity e
-addImplicit = addRootsBy isImplicitExport
+addImplicit    :: Set Entity -> GraphData Entity e -> GraphData Entity e
+addImplicit vs = addRootsBy (isImplicitExport vs)
 
-implicitExports :: GraphData Entity e -> Set Node
-implicitExports = S.fromList
-                  . map node
-                  . applyAlg (filterNodes (const isImplicitExport))
+implicitExports    :: Set Entity -> GraphData Entity e -> Set Node
+implicitExports vs = S.fromList
+                     . map node
+                     . applyAlg (filterNodes (const (isImplicitExport vs)))
 
 -- | Collapse items that must be kept together before clustering, etc.
 --   Also updates wantedRootNodes.
-collapseStructures :: HSData -> HSData
-collapseStructures = collapseAndUpdate collapseFuncs
+collapseStructures :: HSData -> (HSData, Map Entity Entity)
+collapseStructures = collapseAndUpdate' collapseFuncs
 
 collapseFuncs :: [HSGraph -> [(NGroup, Entity)]]
 collapseFuncs = [ collapseDatas
@@ -204,12 +222,12 @@ collapseFuncs = [ collapseDatas
                 ]
     where
       collapseDatas = mkCollapseTp isData getDataType mkData
-      mkData m d = mkEnt m ("Data: " ++ d) (CollapsedData d)
+      mkData m d = Ent m ("Data: " ++ d) (CollapsedData d)
       collapseClasses = mkCollapseTp isClass getClassName mkClass
-      mkClass m c = mkEnt m ("Class: " ++ c) (CollapsedClass c)
+      mkClass m c = Ent m ("Class: " ++ c) (CollapsedClass c)
       collapseInsts = mkCollapseTp isInstance getInstance mkInst
-      mkInst m (c,d) = mkEnt m ("Class: " ++ c ++ ", Data: " ++ d)
-                               (CollapsedInstance c d)
+      mkInst m (c,d) = Ent m ("Class: " ++ c ++ ", Data: " ++ d)
+                             (CollapsedInstance c d)
 
 mkCollapseTp           :: (Ord a) => (EntityType -> Bool) -> (EntityType -> a)
                           -> (ModName -> a -> Entity) -> HSGraph

@@ -80,7 +80,7 @@ drawGraph' gid dg = setID (Str gid)
 --   only one module, @'Nothing'@ if all.
 entityAttributes :: GData n e -> Bool -> Maybe ModName
                     -> LNode Entity -> Attributes
-entityAttributes hd a mm (n,(Ent m nm t _))
+entityAttributes hd a mm (n,(Ent m nm t))
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
       -- , Color [ColorName cl]

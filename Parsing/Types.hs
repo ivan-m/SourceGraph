@@ -129,7 +129,7 @@ mkLookup' = mkLookup Nothing
 lookupEntity       :: EntityLookup -> QEntityName -> Entity
 lookupEntity el qn = fromMaybe unkn $ M.lookup qn el
     where
-      unkn = mkEnt UnknownMod (snd qn) NormalEntity
+      unkn = Ent UnknownMod (snd qn) NormalEntity
 
 -- | Find the corresponding 'Entity' for the given name with no qualification.
 lookupEntity'    :: EntityLookup -> EntityName -> Entity
@@ -187,6 +187,11 @@ data ModName = LocalMod { modName :: String }
              | ExtMod   { modName :: String }
              | UnknownMod
                deriving (Eq, Ord, Show, Read)
+
+internalEntity   :: Entity -> Bool
+internalEntity e = case inModule e of
+                     LocalMod{} -> True
+                     _          -> False
 
 clusteredModule       :: LNode ModName -> NodeCluster String String
 clusteredModule (n,m) = go $ modulePathOf m
@@ -273,19 +278,8 @@ importLookup hi
 data Entity = Ent { inModule  :: ModName
                   , name      :: EntityName
                   , eType     :: EntityType
-                  , isVirtual :: Bool
                   }
               deriving (Eq, Ord, Show, Read)
-
--- | Create a non-virtual 'Entity'
-mkEnt       :: ModName -> EntityName -> EntityType -> Entity
-mkEnt m n t = Ent m n t False
-
-makeVirtual :: Entity -> Entity
-makeVirtual e = e { isVirtual = True }
-
-setVirtual :: Set Entity -> Set Entity
-setVirtual = S.map makeVirtual
 
 instance ClusterLabel Entity where
     type Cluster Entity = ModName
@@ -373,7 +367,6 @@ defEntity    :: EntityName -> Entity
 defEntity nm = Ent { inModule  = UnknownMod
                    , name      = nm
                    , eType     = NormalEntity
-                   , isVirtual = False
                    }
 
 setEntModule     :: ModName -> Entity -> Entity

@@ -90,7 +90,7 @@ entityAttributes hd a mm (n,(Ent m nm t))
       , Style [SItem Filled [], styleFor mm m]
       ]
     where
-      lbl = bool (nameOfModule m ++ "\\n" ++ nm) nm
+      lbl = bool nm (nameOfModule m ++ "\\n" ++ nm)
             $ not sameMod || a
       sameMod = maybe True ((==) m) mm
 
@@ -106,8 +106,8 @@ shapeFor CollapsedInstance{} = Octagon
 shapeFor NormalEntity        = BoxShape
 
 styleFor                 :: Maybe ModName -> ModName -> StyleItem
-styleFor mm m@LocalMod{} = flip SItem [] . bool Bold Solid
-                           $ maybe True ((==) m) mm
+styleFor mm m@LocalMod{} = flip SItem [] . bool Solid Bold
+                           $ maybe False ((==) m) mm
 styleFor _  ExtMod{}     = SItem Dashed []
 styleFor _  UnknownMod   = SItem Dotted []
 
@@ -191,7 +191,7 @@ drawModules gid md = setID (Str gid)
                                          nAttr
                                          (const [])
     where
-      cID s = bool (Just $ Str s) Nothing $ (not . null) s
+      cID s = bool Nothing (Just $ Str s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr p = [GraphAttrs [Label $ StrLabel p]]
       nAttr (n,m) = [ Label $ StrLabel m

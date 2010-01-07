@@ -50,6 +50,6 @@ groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
 
 
 bool       :: a -> a -> Bool -> a
-bool t f b = if b then t else f
+bool f t b = if b then t else f
 
 -- -----------------------------------------------------------------------------

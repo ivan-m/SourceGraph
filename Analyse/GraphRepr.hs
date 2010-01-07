@@ -40,6 +40,8 @@ module Analyse.GraphRepr
        , mkHData'
        , origHData
        , collapsedHData
+       , updateOrig
+       , updateCollapsed
        , HData
        , mkHData
        , HSData
@@ -96,6 +98,9 @@ mapData f gd = GD { graphData = gr'
     gr = graphData gd
     gr' = f gr
 
+mapData'   :: (Ord e') => (AGr n e -> AGr n' e') -> GData n e -> GData n' e'
+mapData' f = mapData (updateGraph f)
+
 commonColors    :: GraphData n e -> [(Set Node, Color)]
 commonColors gd = [ (rs, exportedRootColor)
                   , (es, exportedInnerColor)
@@ -117,16 +122,19 @@ getWRoots = S.fromList . wantedRootNodes
 
 -- -----------------------------------------------------------------------------
 
-type HData' = (HData, HData)
+data HData' = HD' { origHData      :: HData
+                  , collapsedHData :: HData
+                  }
 
 mkHData'    :: HSData -> HData'
-mkHData' hs = (mkHData hs, mkHData $ collapseStructures hs)
+mkHData' hs = HD' (mkHData hs) (mkHData $ collapseStructures hs)
 
-origHData :: HData' -> HData
-origHData = fst
+updateOrig       :: (HSGraph -> HSGraph) -> HData' -> HData'
+updateOrig f hd' = hd' { origHData = mapData' f $ origHData hd' }
 
-collapsedHData :: HData' -> HData
-collapsedHData = snd
+updateCollapsed       :: (HSGraph -> HSGraph) -> HData' -> HData'
+updateCollapsed f hd' = hd' { collapsedHData = mapData' f $ collapsedHData hd' }
+
 
 type HData = GData Entity CallType
 

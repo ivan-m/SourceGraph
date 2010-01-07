@@ -203,7 +203,7 @@ coreAnal cd = if isEmpty core
               then Nothing
               else Just $ Section sec [hdr, anal]
     where
-      cd' = second (mapData (updateGraph coreOf)) cd
+      cd' = updateCollapsed coreOf cd
       core = graph . graphData $ origHData cd'
       lbl = "Overall core"
       hdr = Paragraph [Text "The core of software can be thought of as \

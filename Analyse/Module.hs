@@ -182,7 +182,7 @@ coreAnal (n,m,fd) = if isEmpty core
                     then Nothing
                     else Just el
     where
-      fd' = second (mapData (updateGraph coreOf)) fd
+      fd' = updateCollapsed coreOf fd
       core = graph . graphData $ origHData fd'
       p = n ++ "_core"
       lbl = unwords ["Core of", n]

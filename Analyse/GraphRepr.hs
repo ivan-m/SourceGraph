@@ -108,11 +108,12 @@ mapData'   :: (Ord e') => (AGr n e -> AGr n' e') -> GData n e -> GData n' e'
 mapData' f = mapData (updateGraph f)
 
 commonColors    :: GraphData n e -> [(Set Node, Color)]
-commonColors gd = [ (rs, exportedRootColor)
+commonColors gd = [ (rs', exportedRootColor)
                   , (es, exportedInnerColor)
                   , (ls, leafColor)
                   ]
   where
+    rs' = S.intersection rs es
     rs = getRoots  gd
     ls = getLeaves gd
     es = getWRoots gd

@@ -216,11 +216,12 @@ analyseCode                :: FilePath -> String -> [ModName]
 analyseCode fp nm exps hms = do d <- today
                                 g <- newStdGen
                                 let dc = doc d g
-                                docOut <- createDocument pandocHtml dc
+                                docOut <- createDocument pandocHtml' dc
                                 case docOut of
                                   Just path -> success path
                                   Nothing   -> failure
     where
+      pandocHtml' = alsoSaveDot pandocHtml
       graphdir = "graphs"
       doc d g = Doc { rootDirectory  = rt
                     , fileFront      = nm

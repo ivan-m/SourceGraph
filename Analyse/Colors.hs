@@ -31,8 +31,8 @@ module Analyse.Colors where
 
 import Data.GraphViz.Attributes.Colors
 
-unAccessibleColor :: Color
-unAccessibleColor = X11Color Crimson
+inaccessibleColor :: Color
+inaccessibleColor = X11Color Crimson
 
 exportedRootColor :: Color
 exportedRootColor = X11Color Gold

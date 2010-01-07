@@ -129,7 +129,7 @@ rootAnal imd
     | otherwise  = Just $ Section sec unReachable
     where
       imd' = graphData imd
-      ntWd = S.toList . unaccessibleNodes $ imd'
+      ntWd = S.toList . inaccessibleNodes $ imd'
       ntWd' = applyAlg getLabels imd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These modules are those that are unreachable:"]

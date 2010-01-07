@@ -176,7 +176,7 @@ rootAnal cd
     | otherwise  = Just $ Section sec unReachable
     where
       cd' = compactData $ origHData cd
-      ntWd = S.toList . unaccessibleNodes $ addImplicit (origVirts cd) cd'
+      ntWd = S.toList . inaccessibleNodes $ addImplicit (origVirts cd) cd'
       ntWd' = applyAlg getLabels cd' ntWd
       asExpected = null ntWd
       unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]

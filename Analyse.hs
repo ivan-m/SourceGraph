@@ -134,8 +134,8 @@ esExp = (dg', R.Bold $ Text "Entity location classification.")
       dg' = DG "legend_loc2" (Text "Entity Location") dg
       dg = mkLegendGraph ns es
       ns = zip [1..]
-           [ [ Label (StrLabel "Un-accessible entity")
-             , FillColor unAccessibleColor]
+           [ [ Label (StrLabel "Inaccessible entity")
+             , FillColor inaccessibleColor]
            , [ Label (StrLabel "Exported root entity")
              , FillColor exportedRootColor]
            , [ Label (StrLabel "Exported non-root entity")

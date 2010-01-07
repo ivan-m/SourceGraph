@@ -173,12 +173,12 @@ type HSGraph = AGr Entity CallType
 type HSClustGraph = AGr (GenCluster Entity) CallType
 
 entColors       :: Set Entity -> GraphData Entity e -> [(Set Node, Color)]
-entColors vs hd = (us, unAccessibleColor)
+entColors vs hd = (us, inaccessibleColor)
                   : (imps, implicitExportColor)
                   : commonColors hd
   where
     hd' = addImplicit vs hd
-    us = unaccessibleNodes hd'
+    us = inaccessibleNodes hd'
     imps = implicitExports vs hd
 
 -- -----------------------------------------------------------------------------
@@ -263,8 +263,8 @@ type ModData = GraphData ModName ()
 type ModGraph = AGr ModName ()
 
 modColors    :: GraphData ModName e -> [(Set Node, Color)]
-modColors gd = (us, unAccessibleColor) : commonColors gd
+modColors gd = (us, inaccessibleColor) : commonColors gd
   where
-    us = unaccessibleNodes gd
+    us = inaccessibleNodes gd
 
 -- -----------------------------------------------------------------------------

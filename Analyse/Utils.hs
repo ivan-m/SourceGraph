@@ -53,3 +53,16 @@ bool       :: a -> a -> Bool -> a
 bool f t b = if b then t else f
 
 -- -----------------------------------------------------------------------------
+
+-- For core
+
+coreDesc   :: String -> DocElement
+coreDesc w = Paragraph [ Text "The core of"
+                       , BlankSpace
+                       , Text w
+                       , BlankSpace
+                       , Text "is calculated by recursively removing roots\
+                               \ and leaves of the call graph; as such, it\
+                               \ can be considered as the section where all\
+                               \ the \"real work\" is done."
+                       ]

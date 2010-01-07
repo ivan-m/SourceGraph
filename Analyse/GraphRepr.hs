@@ -44,6 +44,7 @@ module Analyse.GraphRepr
        , collapsedVirts
        , updateOrig
        , updateCollapsed
+       , makeCore
        , HData
        , mkHData
        , HSData
@@ -62,7 +63,7 @@ module Analyse.GraphRepr
        ) where
 
 import Parsing.Types
-import Analyse.Utils(groupSortBy)
+import Analyse.Utils(bool, groupSortBy)
 import Analyse.Colors
 
 import Data.Graph.Analysis
@@ -152,6 +153,13 @@ updateOrig f hd' = hd' { origHData = mapData' f $ origHData hd' }
 updateCollapsed       :: (HSGraph -> HSGraph) -> HData' -> HData'
 updateCollapsed f hd' = hd' { collapsedHData = mapData' f $ collapsedHData hd' }
 
+makeCore    :: HData' -> Maybe HData'
+makeCore hd = bool Nothing (Just hd') $ isInteresting hd'
+  where
+    isInteresting = not . applyAlg (liftM2 (||) isEmpty unChanged)
+                    . graphData . origHData
+    unChanged = applyAlg equal $ graphData (origHData hd)
+    hd' = updateOrig coreOf hd
 
 type HData = GData Entity CallType
 

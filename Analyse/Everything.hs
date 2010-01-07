@@ -199,17 +199,16 @@ cycleCompAnal cd = Just $ Section sec pars
                      (Web "http://en.wikipedia.org/wiki/Cyclomatic_complexity")
 
 
-coreAnal    :: HData' -> Maybe DocElement
-coreAnal cd = if isEmpty core
-              then Nothing
-              else Just $ Section sec [hdr, anal]
+coreAnal :: HData' -> Maybe DocElement
+coreAnal = fmap mkDE . makeCore
     where
-      cd' = updateCollapsed coreOf cd
-      core = graph . graphData $ origHData cd'
+      mkDE cd' = Section sec [ hdr
+                             , GraphImage $ DG "codeCore"
+                                               (Text lbl)
+                                               (drawGraph lbl Nothing cd')
+                             ]
       lbl = "Overall core"
-      hdr = Paragraph [Text "The core of software can be thought of as \
-                             \the part where all the work is actually done."]
-      anal = GraphImage $ DG "codeCore" (Text lbl) (drawGraph lbl Nothing cd')
+      hdr = coreDesc "software"
       sec = Text "Overall Core analysis"
 
 

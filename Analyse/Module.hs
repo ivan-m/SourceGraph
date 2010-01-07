@@ -178,18 +178,16 @@ rootAnal (n,_,fd)
                      , Emphasis (Text n)]
 
 coreAnal          :: ModuleData -> Maybe DocElement
-coreAnal (n,m,fd) = if isEmpty core
-                    then Nothing
-                    else Just el
+coreAnal (n,m,fd) = fmap mkDE $ makeCore fd
     where
-      fd' = updateCollapsed coreOf fd
-      core = graph . graphData $ origHData fd'
+      mkDE fd' = Section sec [ hdr
+                             , GraphImage $ DG p
+                                               (Text lbl)
+                                               (drawGraph lbl (Just m) fd')
+                             ]
       p = n ++ "_core"
       lbl = unwords ["Core of", n]
-      hdr = Paragraph [Text "The core of a module can be thought of as \
-                             \the part where all the work is actually done."]
-      anal = GraphImage $ DG p (Text lbl) (drawGraph lbl (Just m) fd')
-      el = Section sec [hdr, anal]
+      hdr = coreDesc "a module"
       sec = Grouping [ Text "Core analysis of"
                      , Emphasis (Text n)]
 

@@ -16,6 +16,8 @@ Changes in 0.6.0.0
 * Level-based analyses: visualise how deep an entity is from those
   exported entities.
 
+* The generated Dot code for the visualisations is also saved.
+
 Changes in 0.5.5.0
 ==================
 

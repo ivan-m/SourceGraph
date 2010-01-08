@@ -194,12 +194,14 @@ internalEntity e = case inModule e of
                      LocalMod{} -> True
                      _          -> False
 
-clusteredModule       :: LNode ModName -> NodeCluster String String
-clusteredModule (n,m) = go $ modulePathOf m
+type Depth = Int
+
+clusteredModule       :: LNode ModName -> NodeCluster (Depth, String) String
+clusteredModule (n,m) = go 0 $ modulePathOf m
     where
-      go [m']   = N (n,m')
-      go (p:ps) = C p $ go ps
-      go []     = error "Shouldn't be able to have an empty module name."
+      go _ [m']   = N (n,m')
+      go d (p:ps) = C (d,p) $ go (succ d) ps
+      go _ []     = error "Shouldn't be able to have an empty module name."
 
 instance ClusterType ModName where
     clusterID = Just . Str . unDotPath . nameOfModule

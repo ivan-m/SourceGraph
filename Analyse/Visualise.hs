@@ -219,13 +219,19 @@ drawModules gid md = setID (Str gid)
                                          nAttr
                                          (const [])
     where
-      cID s = bool Nothing (Just $ Str s) $ (not . null) s
+      cID (_,s) = bool Nothing (Just $ Str s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
-      cAttr p = [GraphAttrs [Label $ StrLabel p]]
+      cAttr dp = [GraphAttrs $ directoryAttributes dp]
       nAttr (n,m) = [ Label $ StrLabel m
                     , FillColor $ entCol md n
                     , Shape Tab
                     ]
+
+directoryAttributes       :: (Depth, String) -> Attributes
+directoryAttributes (d,n) = Label (StrLabel n) : col
+  where
+    col = bool [] [Style [SItem Filled []], FillColor clusterBackground]
+          $ d `mod` 2 == 0
 
 -- -----------------------------------------------------------------------------
 

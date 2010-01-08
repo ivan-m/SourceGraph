@@ -230,7 +230,7 @@ analyseCode fp nm exps hms = do d <- today
                     , author         = a
                     , date           = d
                     , legend         = sgLegend
-                    , content        = msg : implicitMsg : linkMsg : c g
+                    , content        = notes : c g
                     }
       rt = fp </> programmeName
       sv s v = s ++ " (version " ++ v ++ ")"
@@ -240,6 +240,7 @@ analyseCode fp nm exps hms = do d <- today
       c g = analyse g exps hms
       success fp' = putStrLn $ unwords ["Report generated at:",fp']
       failure = putErrLn "Unable to generate report"
+      notes = Section (Text "Notes") [msg, implicitMsg, linkMsg]
       msg = Paragraph [ Text "Please note that the source-code analysis in this\
                              \ document is not necessarily perfect: "
                       , Emphasis $ Text programmeName

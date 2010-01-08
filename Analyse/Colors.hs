@@ -63,3 +63,6 @@ chainColor = X11Color Chartreuse
 
 clusterBackground :: Color
 clusterBackground = X11Color Lavender
+
+noBackground :: Color
+noBackground = X11Color Snow

@@ -32,7 +32,7 @@ module Analyse.Visualise where
 import Parsing.Types
 import Analyse.GraphRepr
 import Analyse.Utils
-import Analyse.Colors(defaultNodeColor, defaultEdgeColor, clusterBackground)
+import Analyse.Colors
 
 import Data.Graph.Analysis hiding (Bold)
 import Data.Graph.Inductive
@@ -235,9 +235,11 @@ drawModules gid md = setID (Str gid)
       eAttr le = [Color [edgeCol md $ edge le]]
 
 directoryAttributes       :: (Depth, String) -> Attributes
-directoryAttributes (d,n) = Label (StrLabel n) : col
+directoryAttributes (d,n) = col : [Style [SItem Filled []]
+                                  , Label (StrLabel n)
+                                  ]
   where
-    col = bool [] [Style [SItem Filled []], FillColor clusterBackground]
+    col = bool (FillColor noBackground) (FillColor clusterBackground)
           $ d `mod` 2 == 0
 
 -- -----------------------------------------------------------------------------

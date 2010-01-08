@@ -1,3 +1,21 @@
+Changes in 0.6.0.0
+==================
+
+* Now supports "implicitly exported" entities (as requested by Curt
+  Sampson).  This includes instantiated class methods from other
+  modules and functions, etc. that start with an underscore (see
+  http://www.haskell.org/ghc/docs/latest/html/users_guide/options-sanity.html
+  for more information).
+
+* All inaccessible entities are now reported, not just those that were
+  root nodes in the call graph.
+
+* Edges are now colour-coded based upon whether they are part of a
+  clique, cycle or a chain.
+
+* Level-based analyses: visualise how deep an entity is from those
+  exported entities.
+
 Changes in 0.5.5.0
 ==================
 

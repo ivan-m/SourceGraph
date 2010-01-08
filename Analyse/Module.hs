@@ -166,13 +166,13 @@ chainAnal (n,_,fd)
 rootAnal :: ModuleData -> Maybe DocElement
 rootAnal (n,_,fd)
     | asExpected = Nothing
-    | otherwise  = Just $ Section sec unReachable
+    | otherwise  = Just $ Section sec inaccessible
     where
       fd' = compactData $ origHData fd
       ntWd = S.toList . inaccessibleNodes $ addImplicit (origVirts fd) fd'
       ntWd' = applyAlg getLabels fd' ntWd
       asExpected = null ntWd
-      unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
+      inaccessible = [ Paragraph [Text "These functions are those that are inaccessible:"]
                     , Paragraph [Emphasis . Text $ showNodes' name ntWd']
                     ]
       sec = Grouping [ Text "Root analysis of"

@@ -126,13 +126,13 @@ chainAnal imd
 rootAnal :: MData -> Maybe DocElement
 rootAnal imd
     | asExpected = Nothing
-    | otherwise  = Just $ Section sec unReachable
+    | otherwise  = Just $ Section sec inaccessible
     where
       imd' = graphData imd
       ntWd = S.toList . inaccessibleNodes $ imd'
       ntWd' = applyAlg getLabels imd' ntWd
       asExpected = null ntWd
-      unReachable = [ Paragraph [Text "These modules are those that are unreachable:"]
+      inaccessible = [ Paragraph [Text "These modules are those that are inaccessible:"]
                     , Paragraph [Emphasis . Text $ showNodes' nameOfModule ntWd']
                     ]
       sec = Text "Import root analysis"

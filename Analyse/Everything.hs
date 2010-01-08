@@ -174,13 +174,13 @@ chainAnal cd
 rootAnal :: HData' -> Maybe DocElement
 rootAnal cd
     | asExpected = Nothing
-    | otherwise  = Just $ Section sec unReachable
+    | otherwise  = Just $ Section sec inaccessible
     where
       cd' = compactData $ origHData cd
       ntWd = S.toList . inaccessibleNodes $ addImplicit (origVirts cd) cd'
       ntWd' = applyAlg getLabels cd' ntWd
       asExpected = null ntWd
-      unReachable = [ Paragraph [Text "These functions are those that are unreachable:"]
+      inaccessible = [ Paragraph [Text "These functions are those that are inaccessible:"]
                     , Paragraph [Emphasis . Text $ showNodes' fullName ntWd']
                     ]
       sec = Text "Overall root analysis"

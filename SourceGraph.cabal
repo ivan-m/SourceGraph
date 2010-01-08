@@ -41,8 +41,6 @@ Cabal-Version:       >= 1.6
 Build-Type:          Simple
 Extra-Source-Files: TODO
                     ChangeLog
-                    KnownProblems.txt
-                    ParsingProblems.txt
 
 Source-Repository head
     Type:         darcs

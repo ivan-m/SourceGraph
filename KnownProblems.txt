@@ -1,6 +1,0 @@
-This is a list of known problems with SourceGraph except for those
-related to parsing.
-
-* Printing of labels doesn't always turn out so well (overlaps, etc.).
-
-* No options on what to do, etc.

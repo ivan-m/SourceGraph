@@ -1,13 +1,170 @@
 TODO for SourceGraph
 ====================
 
-* Let users choose output directory
+This is the list of planned improvements to the SourceGraph program.
+Please note that some of these improvements will actually take place
+in the [Graphalyze](http://hackage.haskell.org/package/Graphalyze)
+library.
 
-* Let users choose output format
+Parsing Improvements
+--------------------
 
-* Have a "just draw the graph" option
+SourceGraph uses
+[haskell-src-exts](http://hackage.haskell.org/package/haskell-src-exts)
+to parse Haskell code.  As such, it is limited in terms of what it can
+parse first of all by what haskell-src-exts supports.
 
-* "Smarter" analysis: don't show compressed if its boring, etc.
-  -- Mainly done, could possibly be smarter
+* The following types of items are not yet recognised; either add
+  support for them (e.g. using cpphs for CPP) or else log a message if
+  there is no sane way of integrating them into the call graph:
 
-* Write a README
+    - Invalid code (these files will not even be readable by
+      haskell-src-exts and as such a warning should be displayed).
+
+    - Modules using the C Pre-Processor; adding support for this will
+      depend on better Cabal file support and command line options.
+
+    - [Haskell Regular
+      Patterns](http://hackage.haskell.org/package/harp), [Haskell
+      Source with XML](http://hackage.haskell.org/package/hsx) and the
+      embedded XML syntax of [Haskell Server
+      Pages](http://hackage.haskell.org/package/hsp) all utilise
+      haskell-src-exts to extend Haskell syntax; as such, the parsing
+      support is available but it is unknown how to convert them to
+      entities in the call graph.
+
+    - It is unknown how to add [Data
+      Family](http://www.haskell.org/haskellwiki/GHC/Type_families)
+      instances (both normal and GADT style) into the call graph.
+
+    - It is probably not possible to integrate [Foreign Function
+      Interface](http://www.haskell.org/haskellwiki/FFI) imports and
+      exports into the call graph.
+
+    - [Template
+      Haskell](http://www.haskell.org/haskellwiki/Template_Haskell) is
+      also not currently supported.
+
+* The following items have partial/incomplete/possibly wrong support
+  for integration into the call graph:
+
+    - Currently pragmas, LANGUAGE options, etc. are only supported if
+      they are included in the top level of the module (as such,
+      haskell-src-exts will use them for parsing purposes).
+
+    - Entities explicitly imported from an external module are not
+      always correctly categorised; to improve support for this, any
+      class methods or datatype constructors/record functions should
+      be explicitly imported [rather than using the `Foo(..)`] syntax;
+      furthermore, a datatype import is only recognised as such if at
+      least one constructor is imported (otherwise it is assumed to be
+      a class).
+
+    - When using record puns, it is not always possible to distinguish
+      between the records and punned values.
+
+    - When using record wildcards, not all records are completely
+      listed/used as both record functions and variables (see the
+      problem with record puns above).
+
+    - Multi-param type classes may not be considered/formatted
+      correctly.
+
+    - Entities that are imported into a module and then re-exported
+      (including re-exporting the entire imported module) may not be
+      considered correctly.
+
+
+Analysis Improvements
+---------------------
+
+* When considering levels, produce a plot of level size vs depth.
+
+    - Similar plots may be useful for other analyses, such as the number
+      of cycles of a given size.
+
+    - Possibly also provide a characterisation of the "shape" of the plot.
+
+* Provide comparisons from other large-scale Haskell projects for
+  analyses such as shape of the level graph, cyclomatic complexity.
+
+    - To achieve this, possibly run a cut-down version of SourceGraph
+      over all packages in
+      [HackageDB](http://hackage.haskell.org/package/) to accumulate the
+      comparison information.
+
+* Include more ways of analysing software from its Call Graph.
+
+Reporting Format
+----------------
+
+* Use CSS, etc. to improve the generated HTML files.
+
+* Produce multi-page HTML documents.
+
+* Improve formatting of entity listing (listing of cliques, etc.).
+
+* Report errors/warnings (from parsing, etc.).
+
+* Improve graph visualisation:
+
+    - Having a lot of edges makes it difficult to "read" the
+      visualisation (maybe when clustering have the edges go from
+      cluster to cluster?).
+
+    - Ensure node labels do not extend past the boundary of the node
+      (note: for cluster labels, this seems to be a bug with Graphviz's
+      SVG output).
+
+Project Integration
+-------------------
+
+* Allow clearer differentiation between Cabal-based and source-based
+  projects.
+
+    - When basing it off files, allow the user to specify several files.
+
+* For Cabal:
+
+    - When using Cabal, provide some way to choose which section is
+      being analysed (i.e. library or an executable).
+        + Probably also some way of reporting to the user which options are
+          available.
+
+    - Pass GHC, CPP, etc. flags through for when parsing the files.
+
+Program Usage
+-------------
+
+* Provide command-line options to allow users to set the following:
+
+    - Output directory.
+
+    - Report format.
+
+    - What output to generate, e.g.:
+        + Brief analysis summary.
+        + Only produce a call-graph (overall, imports and per-module).
+
+    - What to analyse, that is one of the following:
+        + Only one module (not when using Cabal mode).
+        + Only files used in that project.
+        + All files found (whether they are used in the project or not).
+
+* The ability to specify project flags (Cabal flags, CPP flags, etc.).
+
+* Write a README and supporting documentation.
+
+Future Plans
+------------
+
+* Write a proper website for SourceGraph.
+
+* Provide some way of making the analyses "interactive" (e.g. zooming,
+  slicing, etc.).
+
+    - Noam Lewis' proposed interactive graph editor may be a start
+      towards providing this kind of functionality.
+
+* Integrate SourceGraph into
+  [HackageDB](http://hackage.haskell.org/package/).

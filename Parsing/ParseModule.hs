@@ -124,7 +124,7 @@ createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
       isDta = any (isUpper . head) cs'
       mkData c | isD c     = Constructor n'
                | otherwise = RecordFunction n' -- Nothing
-      mkClass _ = ClassFunction n'
+      mkClass _ = ClassMethod n'
       eT = if isDta then mkData else mkClass
 createEnt _  _                 = []
 
@@ -315,7 +315,7 @@ addClassDecl _ _           = return Nothing
 addCDecl                    :: ClassName -> Decl -> PState (Maybe EntityLookup)
 addCDecl c (TypeSig _ ns _) = do m <- getModuleName
                                  let ns' = map nameOf ns
-                                     eTp = ClassFunction c
+                                     eTp = ClassMethod c
                                      es = map (\n -> Ent m n eTp) ns'
                                  return $ Just (mkEl es)
 addCDecl c (FunBind ms)     = mapM_ (addCMatch c) ms >> return Nothing
@@ -327,7 +327,7 @@ addCDecl c pb@PatBind{}     = do mn <- getModuleName
                                  let vs = S.map snd d
                                      -- Class-based entities
                                      mkI n = Ent mn n (DefaultInstance c)
-                                     mkC n = Ent mn n (ClassFunction c)
+                                     mkC n = Ent mn n (ClassMethod c)
                                      cis = S.map (\n -> (mkC n, mkI n)) vs
                                      -- Instance Decls
                                      iDcls = S.map snd cis `S.union` instDecls pm
@@ -432,15 +432,15 @@ addIMatch c d m = do pmf <- getFutureParsedModule
 -- method because otherwise the class won't be imported either.
 classFuncLookup         :: ClassName -> ParsedModule -> EntityName -> Entity
 classFuncLookup c pmf n = case inModule e of
-                            UnknownMod -> e { eType = ClassFunction c }
+                            UnknownMod -> e { eType = ClassMethod c }
                             _          -> e
     where
       e = lookupEntity' knownMethods n
       knownMethods = localMethods `M.union` importMethods
       localMethods = fromMaybe M.empty $ c `M.lookup` classDecls pmf
       importMethods = M.filter (isMethod . eType) $ allImports pmf
-      isMethod (ClassFunction c') = c == c'
-      isMethod _                  = False
+      isMethod (ClassMethod c') = c == c'
+      isMethod _                = False
 
 -- -----------------------------------------------------------------------------
 -- For top-level functions

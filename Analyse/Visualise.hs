@@ -99,7 +99,7 @@ entityAttributes hd a mm (n,(Ent m nm t))
 shapeFor                     :: EntityType -> Shape
 shapeFor Constructor{}       = Box3D
 shapeFor RecordFunction{}    = Component
-shapeFor ClassFunction{}     = DoubleOctagon
+shapeFor ClassMethod{}       = DoubleOctagon
 shapeFor DefaultInstance{}   = Octagon
 shapeFor ClassInstance{}     = Octagon
 shapeFor CollapsedData{}     = Box3D

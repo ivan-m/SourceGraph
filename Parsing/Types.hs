@@ -312,7 +312,7 @@ clusterEntity ln@(_,e) = setClust (N ln)
       setClust = case eType e of
                    (Constructor d)     -> C $ DataDefn d
                    (RecordFunction d)  -> C $ DataDefn d
-                   (ClassFunction c)   -> C $ ClassDefn c
+                   (ClassMethod c)     -> C $ ClassDefn c
                    (DefaultInstance c) -> C (ClassDefn c) . C (DefInst c)
                    (ClassInstance c d) -> C (ClassDefn c) . C (ClassInst c d)
                    _                   -> id
@@ -416,7 +416,7 @@ data EntityType = Constructor DataType
                 | RecordFunction DataType -- (Maybe EntityName)
                                           -- same record function in
                                           -- multiple constructors
-                | ClassFunction ClassName
+                | ClassMethod ClassName
                 | DefaultInstance ClassName
                 | ClassInstance ClassName DataType
                   -- The following three are only for when collapsing.
@@ -437,12 +437,12 @@ getDataType (RecordFunction d) = d
 getDataType _                  = error "Should not see this"
 
 isClass                   :: EntityType -> Bool
-isClass ClassFunction{}   = True
+isClass ClassMethod{}     = True
 isClass DefaultInstance{} = True
 isClass _                 = False
 
-getClassName                   :: EntityType -> ClassName
-getClassName (ClassFunction c)   = c
+getClassName                     :: EntityType -> ClassName
+getClassName (ClassMethod c)     = c
 getClassName (DefaultInstance c) = c
 getClassName _                   = error "Should not see this"
 

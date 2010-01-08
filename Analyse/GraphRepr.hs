@@ -226,7 +226,7 @@ underscoredEntity = isPrefixOf "_" . name
 
 virtClass      :: Set Entity -> Entity -> Bool
 virtClass vs e = case eType e of
-                   ClassFunction{}  -> isVirt
+                   ClassMethod{}    -> isVirt
                    CollapsedClass{} -> isVirt
                    _                -> False
   where

@@ -63,26 +63,42 @@ sgLegend = [ esCall
 
 esCall, mods, esLoc, esData, esClass, esExp :: (DocGraph, DocInline)
 
-esCall = (dg', R.Bold $ Text "Two normal functions with a function call.")
+esCall = (dg', R.Bold txt)
     where
       dg' = DG "legend_call" (Text "Function Call") dg
       dg = mkLegendGraph ns es
       nAs = [Shape BoxShape, FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel "f") : nAs)
-           , (2, Label (StrLabel "g") : nAs)
+      ns = [ (1, Label (StrLabel e1) : nAs)
+           , (2, Label (StrLabel e2) : nAs)
            ]
+      e1 = "f"
+      e2 = "g"
       eAs = [Color [X11Color Black]]
       es = [(1,2,eAs)]
+      txt = Grouping [ Text "Two normal functions with"
+                     , Emphasis $ Text e1
+                     , Text "calling"
+                     , Emphasis $ Text e2
+                     , Text "."
+                     ]
 
-mods = (dg', R.Bold $ Text "Two normal modules with a module import.")
+mods = (dg', R.Bold txt)
     where
       dg' = DG "legend_mods" (Text "Module Import") dg
       dg = mkLegendGraph ns es
       nAs = [Shape Tab, FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel "Foo") : nAs)
-           , (2, Label (StrLabel "Bar") : nAs)
+      ns = [ (1, Label (StrLabel m1) : nAs)
+           , (2, Label (StrLabel m2) : nAs)
            ]
+      m1 = "Foo"
+      m2 = "Bar"
       es = [(1,2,[])]
+      txt = Grouping [ Text "Two modules with module"
+                     , Emphasis $ Text m1
+                     , Text "importing"
+                     , Emphasis $ Text m2
+                     , Text "."
+                     ]
 
 esLoc = (dg', R.Bold $ Text "Entities from different modules.")
     where

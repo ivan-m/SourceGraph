@@ -250,11 +250,16 @@ analyseCode fp nm exps hms = do d <- today
                       ]
       implicitMsg = Paragraph [ Text "Implicitly exported entities refer to\
                                       \ class methods that are instantiated\
-                                      \ but defined elsewhere, or:"
+                                      \ but defined elsewhere, or"
+                              , BlankSpace
                               , DocLink (Text "entities whose names start with\
                                                \ an underscore")
                                         (Web "http://www.haskell.org/ghc/docs/latest/html/users_guide/options-sanity.html")
-                              , Text "."
+                              , BlankSpace
+                              , Text ".  Note that even for "
+                              , Emphasis $ Text "Main"
+                              , BlankSpace
+                              , Text "modules, these implicit exports are included."
                               ]
       linkMsg = Paragraph [Text "All graph visualisations link to larger \
                                  \SVG versions of the same graph."]

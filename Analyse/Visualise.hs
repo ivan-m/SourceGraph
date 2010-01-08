@@ -187,8 +187,9 @@ drawLevels gid mm hd = setID (Str gid)
                                           callAttributes'
   where
     hd' = collapsedHData hd
+    vs = collapsedVirts hd
     dg = compactData hd'
-    wrs = wantedRootNodes dg
+    wrs = wantedRootNodes dg ++ S.toList (implicitExports vs dg)
     dg' = updateGraph (levelGraphFrom wrs) dg
     gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
     nAttr = entityAttributes hd' (not $ isJust mm) mm

@@ -54,6 +54,7 @@ module Analyse.GraphRepr
        , HSClustGraph
          -- ** Utility functions
        , addImplicit
+       , implicitExports
        , onlyNormalCalls
        , onlyNormalCalls'
          -- * Import-based

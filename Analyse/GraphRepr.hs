@@ -175,8 +175,13 @@ type HSClustGraph = AGr (GenCluster Entity) CallType
 
 entColors       :: Set Entity -> GraphData Entity e -> [(Set Node, Color)]
 entColors vs hd = (us, inaccessibleColor)
-                  : (imps, implicitExportColor)
-                  : commonColors hd
+                  :
+                  commonColors hd
+                  ++
+                  -- Do this after in case there's an implicit export
+                  -- that is explicitly exported.
+                  [ (imps, implicitExportColor)
+                  ]
   where
     hd' = addImplicit vs hd
     us = inaccessibleNodes hd'

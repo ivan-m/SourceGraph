@@ -32,7 +32,7 @@ module Analyse.Visualise where
 import Parsing.Types
 import Analyse.GraphRepr
 import Analyse.Utils
-import Analyse.Colors(defaultNodeColor, clusterBackground)
+import Analyse.Colors(defaultNodeColor, defaultEdgeColor, clusterBackground)
 
 import Data.Graph.Analysis hiding (Bold)
 import Data.Graph.Inductive
@@ -53,13 +53,14 @@ drawGraph gid mm dg = setID (Str gid)
                                           ctypeID
                                           clustAttributes'
                                           nAttr
-                                          callAttributes'
+                                          eAttr
     where
       dg' = origHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
       nAttr = entityAttributes dg' (not $ isJust mm) mm
+      eAttr = callAttributes' dg'
 
 -- | One-module-per-cluster 'DotGraph'.
 drawGraph'        :: String -> HData' -> DotGraph Node
@@ -68,11 +69,12 @@ drawGraph' gid dg = setID (Str gid)
                                        gAttrs
                                        modClustAttrs
                                        nAttr
-                                       callAttributes'
+                                       eAttr
     where
       dg' = collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       nAttr = entityAttributes dg' False Nothing
+      eAttr = callAttributes' dg'
 
 -- -----------------------------------------------------------------------------
 
@@ -111,22 +113,24 @@ styleFor mm m@LocalMod{} = flip SItem [] . bool Solid Bold
 styleFor _  ExtMod{}     = SItem Dashed []
 styleFor _  UnknownMod   = SItem Dotted []
 
-callAttributes                        :: CallType -> Attributes
-callAttributes NormalCall             = [ Color [X11Color Black]]
-callAttributes InstanceDeclaration    = [ Color [X11Color Navy]
-                                        , Dir NoDir
-                                        ]
-callAttributes DefaultInstDeclaration = [ Color [X11Color Turquoise]
-                                        , Dir NoDir
-                                        ]
-callAttributes RecordConstructor      = [ Color [X11Color Magenta]
-                                        , ArrowTail oDot
-                                        , ArrowHead vee
-                                        ]
+callAttributes                             :: GData n e -> Edge -> CallType
+                                              -> Attributes
+callAttributes hd e NormalCall             = [ Color [edgeCol hd e]]
+callAttributes _  _ InstanceDeclaration    = [ Color [X11Color Navy]
+                                             , Dir NoDir
+                                             ]
+callAttributes _  _ DefaultInstDeclaration = [ Color [X11Color Turquoise]
+                                             , Dir NoDir
+                                             ]
+callAttributes _  _ RecordConstructor      = [ Color [X11Color Magenta]
+                                             , ArrowTail oDot
+                                             , ArrowHead vee
+                                             ]
 
-callAttributes'              :: LEdge (Int, CallType) -> Attributes
-callAttributes' (_,_,(n,ct)) = PenWidth (fromIntegral n)
-                               : callAttributes ct
+callAttributes'                 :: GData n e -> LEdge (Int, CallType)
+                                   -> Attributes
+callAttributes' hd (f,t,(n,ct)) = PenWidth (fromIntegral n)
+                                  : callAttributes hd (f,t) ct
 
 clustAttributes                 :: EntClustType -> Attributes
 clustAttributes (ClassDefn c)   = [ Label . StrLabel $ "Class: " ++ c
@@ -168,7 +172,7 @@ drawClusters gid cf dg = setID (Str gid)
                                             gAttrs
                                             (const cAttr)
                                             nAttr
-                                            callAttributes'
+                                            eAttr
     where
       dg' = mapData' cf $ collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
@@ -177,6 +181,7 @@ drawClusters gid cf dg = setID (Str gid)
                           ]
               ]
       nAttr = entityAttributes dg' True Nothing
+      eAttr = callAttributes' dg'
 
 drawLevels           :: String -> Maybe ModName -> HData' -> DotGraph Node
 drawLevels gid mm hd = setID (Str gid)
@@ -184,7 +189,7 @@ drawLevels gid mm hd = setID (Str gid)
                                           gAttrs
                                           levelAttr
                                           nAttr
-                                          callAttributes'
+                                          eAttr
   where
     hd' = collapsedHData hd
     vs = collapsedVirts hd
@@ -193,6 +198,7 @@ drawLevels gid mm hd = setID (Str gid)
     dg' = updateGraph (levelGraphFrom wrs) dg
     gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
     nAttr = entityAttributes hd' (not $ isJust mm) mm
+    eAttr = callAttributes' hd'
 
 levelAttr :: Int -> [GlobalAttributes]
 levelAttr l
@@ -217,7 +223,7 @@ drawModules gid md = setID (Str gid)
                                          cID
                                          cAttr
                                          nAttr
-                                         (const [])
+                                         eAttr
     where
       cID (_,s) = bool Nothing (Just $ Str s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
@@ -226,6 +232,7 @@ drawModules gid md = setID (Str gid)
                     , FillColor $ entCol md n
                     , Shape Tab
                     ]
+      eAttr le = [Color [edgeCol md $ edge le]]
 
 directoryAttributes       :: (Depth, String) -> Attributes
 directoryAttributes (d,n) = Label (StrLabel n) : col
@@ -246,3 +253,10 @@ nodeAttrs :: GlobalAttributes
 nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.4 0.1
                       , Style [SItem Filled []]
                       ]
+
+edgeCol     :: GData n e -> Edge -> Color
+edgeCol d e = maybe defaultEdgeColor snd
+              . find hasEdge
+              $ edgeCols d
+  where
+    hasEdge = S.member e . fst

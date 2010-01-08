@@ -59,9 +59,10 @@ sgLegend = [ esCall
            , esData
            , esClass
            , esExp
+           , callCats
            ]
 
-esCall, mods, esLoc, esData, esClass, esExp :: (DocGraph, DocInline)
+esCall, mods, esLoc, esData, esClass, esExp, callCats :: (DocGraph, DocInline)
 
 esCall = (dg', R.Bold txt)
     where
@@ -145,7 +146,7 @@ esClass = (dg', R.Bold $ Text "Class and instance declarations.")
            , (2,3, Color [X11Color Turquoise] : eAs)
            ]
 
-esExp = (dg', R.Bold $ Text "Entity location classification.")
+esExp = (dg', R.Bold $ Text "Entity location/accessibility classification.")
     where
       dg' = DG "legend_loc2" (Text "Entity Location") dg
       dg = mkLegendGraph ns es
@@ -164,6 +165,19 @@ esExp = (dg', R.Bold $ Text "Entity location classification.")
              , FillColor defaultNodeColor]
            ]
       es = []
+
+callCats = (dg', R.Bold $ Text "Edge classification.")
+  where
+    dg' = DG "legend_edges" (Text "Edge Classification") dg
+    dg = mkLegendGraph ns es
+    ns = map (flip (,) [Label (StrLabel ""), Shape PointShape]) [1..5]
+    eA = Dir NoDir
+    es = [ (1,2, [eA, Label (StrLabel "Clique"), Color [cliqueColor]])
+         , (2,3, [eA, Label (StrLabel "Cycle"), Color [cycleColor]])
+         , (3,4, [eA, Label (StrLabel "Chain"), Color [chainColor]])
+         , (4,5, [eA, Label (StrLabel "Normal"), Color [defaultEdgeColor]])
+         ]
+
 
 mkLegendGraph       :: [(Int,Attributes)] -> [(Int,Int,Attributes)]
                        -> DotGraph Node

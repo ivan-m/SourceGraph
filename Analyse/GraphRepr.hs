@@ -65,7 +65,7 @@ module Analyse.GraphRepr
        ) where
 
 import Parsing.Types
-import Analyse.Utils(bool, groupSortBy)
+import Analyse.Utils
 import Analyse.Colors
 
 import Data.Graph.Analysis
@@ -85,21 +85,25 @@ import Control.Monad(liftM2)
 data GData n e = GD { graphData   :: GraphData n e
                     , compactData :: GraphData n (Int, e)
                     , nodeCols    :: [(Set Node, Color)]
+                    , edgeCols    :: [(Set Edge, Color)]
                     }
 
-mkGData     :: (Ord e) => (GraphData n e -> [(Set Node, Color)])
-               -> GraphData n e -> GData n e
-mkGData f g = GD { graphData   = g
-                 , compactData = updateGraph compactSame g
-                 , nodeCols    = f g
-                 }
+mkGData       :: (Ord e) => (GraphData n e -> [(Set Node, Color)])
+                 -> (GraphData n e -> [(Set Edge, Color)])
+                 -> GraphData n e -> GData n e
+mkGData n e g = GD { graphData   = g
+                   , compactData = updateGraph compactSame g
+                   , nodeCols    = n g
+                   , edgeCols    = e g
+                   }
 
 -- | Does not touch the 'nodeCols' values.  Should only touch the labels.
 mapData      :: (Ord e') => (GraphData n e -> GraphData n' e')
                 -> GData n e -> GData n' e'
-mapData f gd = GD { graphData = gr'
+mapData f gd = GD { graphData   = gr'
                   , compactData = updateGraph compactSame gr'
-                  , nodeCols = nodeCols gd
+                  , nodeCols    = nodeCols gd
+                  , edgeCols    = edgeCols gd
                   }
   where
     gr = graphData gd
@@ -167,7 +171,7 @@ makeCore hd = bool Nothing (Just hd') $ isInteresting hd'
 type HData = GData Entity CallType
 
 mkHData    :: Set Entity -> HSData -> HData
-mkHData vs = mkGData (entColors vs)
+mkHData vs = mkGData (entColors vs) (callColors . onlyNormalCalls)
 
 type HSData = GraphData Entity CallType
 type HSClustData = GraphData (GenCluster Entity) CallType
@@ -187,6 +191,16 @@ entColors vs hd = (us, inaccessibleColor)
     hd' = addImplicit vs hd
     us = inaccessibleNodes hd'
     imps = implicitExports vs hd
+
+callColors    :: HSData -> [(Set Edge, Color)]
+callColors hd = [ (cliqueEdges clqs, cliqueColor)
+                , (cycleEdges  cycs, cycleColor)
+                , (chainEdges  chns, chainColor)
+                ]
+  where
+    clqs = applyAlg cliquesIn' hd
+    cycs = applyAlg uniqueCycles' hd
+    chns = applyAlg chainsIn' hd
 
 -- -----------------------------------------------------------------------------
 
@@ -264,7 +278,7 @@ mkCollapseTp p v mkE g = map lng2ne lngs
 type MData = GData ModName ()
 
 mkMData :: ModData -> MData
-mkMData = mkGData modColors
+mkMData = mkGData modColors modEdgeColors
 
 type ModData = GraphData ModName ()
 type ModGraph = AGr ModName ()
@@ -274,4 +288,14 @@ modColors gd = (us, inaccessibleColor) : commonColors gd
   where
     us = inaccessibleNodes gd
 
+modEdgeColors    :: (Eq e) => GraphData ModName e -> [(Set Edge, Color)]
+modEdgeColors gd = [ (cycleEdges cycs, cycleColor)
+                   , (chainEdges chns, chainColor)
+                   ]
+  where
+    cycs = applyAlg cyclesIn' gd
+    chns = applyAlg chainsIn' gd
+
+
 -- -----------------------------------------------------------------------------
+

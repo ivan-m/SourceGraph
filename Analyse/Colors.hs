@@ -49,5 +49,17 @@ leafColor = X11Color Cyan
 defaultNodeColor :: Color
 defaultNodeColor = X11Color Bisque
 
+defaultEdgeColor :: Color
+defaultEdgeColor = X11Color Black
+
+cliqueColor :: Color
+cliqueColor = X11Color Orange
+
+cycleColor :: Color
+cycleColor = X11Color DarkOrchid
+
+chainColor :: Color
+chainColor = X11Color Chartreuse
+
 clusterBackground :: Color
 clusterBackground = X11Color Lavender

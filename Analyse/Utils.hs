@@ -34,6 +34,8 @@ import Data.Graph.Inductive hiding (graphviz)
 
 import Data.List(groupBy, sortBy)
 import Data.Function(on)
+import qualified Data.Set as S
+import Data.Set(Set)
 
 -- -----------------------------------------------------------------------------
 
@@ -51,6 +53,27 @@ groupSortBy f = groupBy ((==) `on` f) . sortBy (compare `on` f)
 
 bool       :: a -> a -> Bool -> a
 bool f t b = if b then t else f
+
+chainEdges'    :: NGroup -> Set Edge
+chainEdges' [] = S.empty
+chainEdges' ns = S.fromList $ zip ns (tail ns)
+
+chainEdges :: [NGroup] -> Set Edge
+chainEdges = S.unions . map chainEdges'
+
+cycleEdges'    :: NGroup -> Set Edge
+cycleEdges' []         = S.empty
+cycleEdges' [_]        = S.empty
+cycleEdges' ns@(n:ns') = (n, last ns') `S.insert` chainEdges' ns
+
+cycleEdges :: [NGroup] -> Set Edge
+cycleEdges = S.unions . map cycleEdges'
+
+cliqueEdges'    :: NGroup -> Set Edge
+cliqueEdges' ns = S.fromList [(f,t) | f <- ns, t <- ns, f /= t]
+
+cliqueEdges :: [NGroup] -> Set Edge
+cliqueEdges = S.unions . map cliqueEdges'
 
 -- -----------------------------------------------------------------------------
 

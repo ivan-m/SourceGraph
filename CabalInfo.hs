@@ -72,7 +72,7 @@ parseCabal fp = do cID <- ghcID
           where
             nm = pName . pkgName $ package pd
             pName (PackageName nm') = nm'
-            exes = executables pd
+            exes = filter (buildable . buildInfo) $ executables pd
             lib = library pd
             moduleNames = map toFilePath
             exps | not $ null exes  = nub $ map (dropExtension . modulePath) exes

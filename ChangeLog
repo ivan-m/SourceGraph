@@ -1,3 +1,20 @@
+Changes in 0.6.1.1
+==================
+
+* Update to take into account API changes of libraries.
+
+Changes in 0.6.1.0
+==================
+
+* Only consider buildable executables for Cabal-based analyses.
+
+* Also buildable with haskell-src-exts-1.7.*
+
+Changes in 0.6.0.2
+==================
+
+* Also buildable with haskell-src-exts-1.6.*
+
 Changes in 0.6.0.1
 ==================
 

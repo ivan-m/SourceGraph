@@ -35,10 +35,9 @@ import Analyse.Utils
 import Analyse.Colors
 
 import Data.Graph.Analysis hiding (Bold)
-import Data.Graph.Inductive hiding (graphviz)
 import Data.GraphViz
 
-import Data.Maybe(isJust, maybe)
+import Data.Maybe(isNothing)
 import Data.List(find)
 import qualified Data.Set as S
 
@@ -55,7 +54,7 @@ drawGraph gid mm dg = setID (Str gid)
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
-      nAttr = entityAttributes dg' (not $ isJust mm) mm
+      nAttr = entityAttributes dg' (isNothing mm) mm
       eAttr = callAttributes' dg'
 
 -- | One-module-per-cluster 'DotGraph'.
@@ -75,7 +74,7 @@ drawGraph' gid dg = setID (Str gid)
 --   only one module, @'Nothing'@ if all.
 entityAttributes :: GData n e -> Bool -> Maybe ModName
                     -> LNode Entity -> Attributes
-entityAttributes hd a mm (n,(Ent m nm t))
+entityAttributes hd a mm (n,Ent m nm t)
     = [ Label $ StrLabel lbl
       , Shape $ shapeFor t
       -- , Color [ColorName cl]
@@ -87,7 +86,7 @@ entityAttributes hd a mm (n,(Ent m nm t))
     where
       lbl = bool nm (nameOfModule m ++ "\\n" ++ nm)
             $ not sameMod || a
-      sameMod = maybe True ((==) m) mm
+      sameMod = maybe True (m==) mm
 
 shapeFor                     :: EntityType -> Shape
 shapeFor Constructor{}       = Box3D
@@ -102,7 +101,7 @@ shapeFor NormalEntity        = BoxShape
 
 styleFor                 :: Maybe ModName -> ModName -> StyleItem
 styleFor mm m@LocalMod{} = flip SItem [] . bool Solid Bold
-                           $ maybe False ((==) m) mm
+                           $ maybe False (m==) mm
 styleFor _  ExtMod{}     = SItem Dashed []
 styleFor _  UnknownMod   = SItem Dotted []
 
@@ -192,7 +191,7 @@ drawLevels gid mm hd = setID (Str gid)
     wrs = wantedRootNodes dg ++ S.toList (implicitExports vs dg)
     dg' = updateGraph (levelGraphFrom wrs) dg
     gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
-    nAttr = entityAttributes hd' (not $ isJust mm) mm
+    nAttr = entityAttributes hd' (isNothing mm) mm
     eAttr = callAttributes' hd'
 
 levelAttr :: Int -> [GlobalAttributes]

@@ -1,3 +1,6 @@
+IDs for class, etc. subgraphs should include the modules for cases
+like bytestring where two datatypes have the same name
+
 TODO for SourceGraph
 ====================
 
@@ -132,6 +135,8 @@ Project Integration
           available.
 
     - Pass GHC, CPP, etc. flags through for when parsing the files.
+
+    - Use the correct source directory and match modules to files.
 
 Program Usage
 -------------

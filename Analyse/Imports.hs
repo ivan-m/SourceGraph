@@ -61,11 +61,11 @@ analyseImports exps hm = Section sec elems
 importsToGraph          :: [ModName] -> ParsedModules -> MData
 importsToGraph exps pms = mkMData $ importData params
     where
-      params = Params { dataPoints    = M.keys pms
-                      , relationships = moduleImports pms
-                      , roots         = exps
-                      , directed      = True
-                      }
+      params = ImpParams { dataPoints    = M.keys pms
+                         , relationships = moduleImports pms
+                         , roots         = exps
+                         , directed      = True
+                         }
 
 moduleImports :: ParsedModules -> [Rel ModName ()]
 moduleImports = concatMap imps . M.elems

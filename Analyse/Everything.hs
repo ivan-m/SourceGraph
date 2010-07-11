@@ -79,11 +79,11 @@ codeToGraph exps pms = mkHData' vs $ importData params
               $ map funcCalls pms'
       vs = S.filter (not . internalEntity)
            . S.unions $ map virtualEnts pms'
-      params = Params { dataPoints    = ents
-                      , relationships = calls
-                      , roots         = exps'
-                      , directed      = True
-                      }
+      params = ImpParams { dataPoints    = ents
+                         , relationships = calls
+                         , roots         = exps'
+                         , directed      = True
+                         }
 
 graphOf    :: HData' -> Maybe DocElement
 graphOf cd = Just $ Section sec [gc]

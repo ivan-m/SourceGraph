@@ -87,12 +87,12 @@ moduleToGraph hm = (n,(nameOfModule mn, mn, mkHData' vs fd))
       n = applyAlg noNodes fd
       fd = importData params
       vs = virtualEnts hm
-      params = Params { dataPoints    = S.toList $ internalEnts hm
-                      , relationships = MS.toList . MS.map callToRel
-                                        $ funcCalls hm
-                      , roots         = S.toList $ exports hm
-                      , directed      = True
-                      }
+      params = ImpParams { dataPoints    = S.toList $ internalEnts hm
+                         , relationships = MS.toList . MS.map callToRel
+                                           $ funcCalls hm
+                         , roots         = S.toList $ exports hm
+                         , directed      = True
+                         }
 
 graphOf          :: ModuleData -> Maybe DocElement
 graphOf (n,m,fd) = Just $ Section sec [gi]

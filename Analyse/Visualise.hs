@@ -35,7 +35,7 @@ import Analyse.Utils
 import Analyse.Colors
 
 import Data.Graph.Analysis hiding (Bold)
-import Data.Graph.Inductive
+import Data.Graph.Inductive hiding (graphviz)
 import Data.GraphViz
 
 import Data.Maybe(isJust, maybe)
@@ -47,14 +47,10 @@ import qualified Data.Set as S
 -- | Create the nested 'DotGraph'.
 drawGraph           :: String -> Maybe ModName -> HData' -> DotGraph Node
 drawGraph gid mm dg = setID (Str gid)
-                      $ graphvizClusters' (compactData dg')
-                                          gAttrs
-                                          toClust
-                                          ctypeID
-                                          clustAttributes'
-                                          nAttr
-                                          eAttr
+                      . graphviz params $ compactData dg'
+
     where
+      params = Params True gAttrs toClust ctypeID clustAttributes' nAttr eAttr
       dg' = origHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       -- Possible clustering problem
@@ -65,12 +61,9 @@ drawGraph gid mm dg = setID (Str gid)
 -- | One-module-per-cluster 'DotGraph'.
 drawGraph'        :: String -> HData' -> DotGraph Node
 drawGraph' gid dg = setID (Str gid)
-                    $ graphvizClusters (compactData dg')
-                                       gAttrs
-                                       modClustAttrs
-                                       nAttr
-                                       eAttr
+                    . graphvizClusters params $ compactData dg'
     where
+      params = Params True gAttrs N (const Nothing) modClustAttrs nAttr eAttr
       dg' = collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       nAttr = entityAttributes dg' False Nothing
@@ -168,12 +161,13 @@ modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
 drawClusters           :: String -> (HSGraph -> HSClustGraph)
                           -> HData' -> DotGraph Node
 drawClusters gid cf dg = setID (Str gid)
-                         $ graphvizClusters (compactData dg')
-                                            gAttrs
-                                            (const cAttr)
-                                            nAttr
-                                            eAttr
+                         . graphvizClusters params $ compactData dg'
     where
+      params = blankParams { globalAttributes = gAttrs
+                           , fmtCluster       = const cAttr
+                           , fmtNode          = nAttr
+                           , fmtEdge          = eAttr
+                           }
       dg' = mapData' cf $ collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
@@ -185,12 +179,13 @@ drawClusters gid cf dg = setID (Str gid)
 
 drawLevels           :: String -> Maybe ModName -> HData' -> DotGraph Node
 drawLevels gid mm hd = setID (Str gid)
-                       $ graphvizClusters dg'
-                                          gAttrs
-                                          levelAttr
-                                          nAttr
-                                          eAttr
+                       $ graphvizClusters params dg'
   where
+    params = blankParams { globalAttributes = gAttrs
+                         , fmtCluster       = levelAttr
+                         , fmtNode          = nAttr
+                         , fmtEdge          = eAttr
+                         }
     hd' = collapsedHData hd
     vs = collapsedVirts hd
     dg = compactData hd'
@@ -217,14 +212,9 @@ levelAttr l
 
 drawModules        :: String -> MData -> DotGraph Node
 drawModules gid md = setID (Str gid)
-                     $ graphvizClusters' (graphData md)
-                                         gAttrs
-                                         clusteredModule
-                                         cID
-                                         cAttr
-                                         nAttr
-                                         eAttr
+                     . graphviz params $ graphData md
     where
+      params = Params True gAttrs clusteredModule cID cAttr nAttr eAttr
       cID (_,s) = bool Nothing (Just $ Str s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
       cAttr dp = [GraphAttrs $ directoryAttributes dp]
@@ -252,7 +242,7 @@ entCol d n = maybe defaultNodeColor snd
     hasNode = S.member n . fst
 
 nodeAttrs :: GlobalAttributes
-nodeAttrs = NodeAttrs [ Margin . PVal $ PointD 0.4 0.1
+nodeAttrs = NodeAttrs [ Margin . PVal $ Point 0.4 0.1
                       , Style [SItem Filled []]
                       ]
 

@@ -35,7 +35,7 @@ import Data.Graph.Analysis.Types( ClusterLabel(..)
                                 , ClusterType(..)
                                 , Rel)
 import Data.Graph.Analysis.Reporting(unDotPath)
-import Data.GraphViz(GraphID(..), NodeCluster(..))
+import Data.GraphViz(GraphID(..), LNodeCluster, NodeCluster(..))
 import Data.Graph.Inductive.Graph(LNode)
 
 import Data.Char(isLetter, isDigit)
@@ -196,7 +196,7 @@ internalEntity e = case inModule e of
 
 type Depth = Int
 
-clusteredModule       :: LNode ModName -> NodeCluster (Depth, String) String
+clusteredModule :: LNode ModName -> NodeCluster (Depth, String) (LNode String)
 clusteredModule (n,m) = go 0 $ modulePathOf m
     where
       go _ [m']   = N (n,m')
@@ -204,7 +204,7 @@ clusteredModule (n,m) = go 0 $ modulePathOf m
       go _ []     = error "Shouldn't be able to have an empty module name."
 
 instance ClusterType ModName where
-    clusterID = Just . Str . unDotPath . nameOfModule
+    clustID = Just . Str . unDotPath . nameOfModule
 
 instance ClusterLabel ModName where
     type Cluster ModName = String
@@ -294,20 +294,20 @@ instance ClusterLabel Entity where
     cluster = inModule
     nodeLabel = id
 
-clusterEntityM    :: LNode Entity -> NodeCluster String Entity
+clusterEntityM    :: LNode Entity -> LNodeCluster String Entity
 clusterEntityM ln = modPathClust id ln (N ln)
 
 modPathClust        :: (String -> a) -> LNode Entity
-                       -> NodeCluster a Entity -> NodeCluster a Entity
+                       -> LNodeCluster a Entity -> LNodeCluster a Entity
 modPathClust f ln b = foldr ($) b $ map (C . f) p
     where
       p = modulePathOf . inModule $ snd ln
 
-clusterEntityM'    :: LNode Entity -> NodeCluster EntClustType Entity
+clusterEntityM'    :: LNode Entity -> LNodeCluster EntClustType Entity
 clusterEntityM' ln = modPathClust ModPath ln (clusterEntity ln)
 
-clusterEntity          :: LNode Entity -> NodeCluster EntClustType Entity
-clusterEntity ln@(_,e) = setClust (N ln)
+clusterEntity          :: LNode Entity -> LNodeCluster EntClustType Entity
+clusterEntity ln@(_,e) = setClust $ N ln
     where
       setClust = case eType e of
                    (Constructor d)     -> C $ DataDefn d

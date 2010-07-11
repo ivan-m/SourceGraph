@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Analyse.Utils where
 
 import Data.Graph.Analysis hiding (Bold)
-import Data.Graph.Inductive hiding (graphviz)
 
 import Data.List(groupBy, sortBy)
 import Data.Function(on)

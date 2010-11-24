@@ -46,28 +46,28 @@ import Language.Haskell.Exts.Parser( ParseMode(..)
                                    , defaultParseMode)
 import Language.Haskell.Exts.Syntax(Module)
 
-import Data.Maybe(mapMaybe)
+import Data.Either(partitionEithers)
 
 type FileContents = (FilePath,String)
 
 -- | Parse all the files and return the map.
 --   This uses laziness to evaluate the 'HaskellModules' result
 --   whilst also using it to parse all the modules to create it.
-parseHaskell    :: [FileContents] -> ParsedModules
-parseHaskell fc = hms
+parseHaskell    :: [FileContents] -> ([FilePath],ParsedModules)
+parseHaskell fc = (failed,hms)
     where
-      ms = parseFiles fc
+      (failed,ms) = parseFiles fc
       hms = createModuleMap hss
       hss = map (parseModule hms) ms
 
 -- | Attempt to parse an individual file.
-parseFile       :: FileContents -> Maybe Module
+parseFile       :: FileContents -> Either FilePath Module
 parseFile (p,f) = case (parseFileContentsWithMode mode f) of
-                    (ParseOk hs) -> Just hs
-                    _            -> Nothing
+                    (ParseOk hs) -> Right hs
+                    _            -> Left p
     where
       mode = defaultParseMode { parseFilename = p }
 
 -- | Parse all the files that you can.
-parseFiles :: [FileContents] -> [Module]
-parseFiles = mapMaybe parseFile
+parseFiles :: [FileContents] -> ([FilePath],[Module])
+parseFiles = partitionEithers . map parseFile

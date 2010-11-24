@@ -72,8 +72,9 @@ main = do input <- getArgs
                       dir' <- if null dir
                                 then getCurrentDirectory
                                 else return dir
-                      hms <- parseFilesFrom dir'
-                      analyseCode dir nm exps hms
+                      (failed,hms) <- parseFilesFrom dir'
+                      mapM_ (putErrLn . ("Could not parse source file "++)) failed
+                      analyseCode dir nm exps failed hms
 
 programmeName :: String
 programmeName = "SourceGraph"
@@ -111,13 +112,13 @@ isCabalFile :: FilePath -> Bool
 isCabalFile = hasExt "cabal"
 
 parseMain    :: FilePath -> IO (Maybe (String, [ModName]))
-parseMain fp = do pms <- parseHaskellFiles [fp]
+parseMain fp = do (_,pms) <- parseHaskellFiles [fp]
                   let mn = fst $ M.findMin pms
                   return $ Just (nameOfModule mn, [mn])
 
 -- | Determine if this is the path of a Haskell file.
 isHaskellFile    :: FilePath -> Bool
-isHaskellFile fp = any (flip hasExt fp) haskellExtensions
+isHaskellFile fp = any (`hasExt` fp) haskellExtensions
 
 hasExt     :: String -> FilePath -> Bool
 hasExt ext = (==) ext . drop 1 . takeExtension
@@ -132,10 +133,10 @@ fpToModule = createModule . map pSep
 -- -----------------------------------------------------------------------------
 
 -- | Recursively parse all files from this directory
-parseFilesFrom    :: FilePath -> IO ParsedModules
+parseFilesFrom    :: FilePath -> IO ([FilePath],ParsedModules)
 parseFilesFrom fp = parseHaskellFiles =<< getHaskellFilesFrom fp
 
-parseHaskellFiles :: [FilePath] -> IO ParsedModules
+parseHaskellFiles :: [FilePath] -> IO ([FilePath],ParsedModules)
 parseHaskellFiles = liftM parseHaskell . readFiles
 
 -- -----------------------------------------------------------------------------
@@ -211,15 +212,15 @@ isSetup f = lowerCase f `elem` map ("setup" <.>) haskellExtensions
 
 -- -----------------------------------------------------------------------------
 
-analyseCode                :: FilePath -> String -> [ModName]
-                           -> ParsedModules -> IO ()
-analyseCode fp nm exps hms = do d <- today
-                                g <- newStdGen
-                                let dc = doc d g
-                                docOut <- createDocument pandocHtml' dc
-                                case docOut of
-                                  Just path -> success path
-                                  Nothing   -> failure
+analyseCode                    :: FilePath -> String -> [ModName]
+                                  -> [FilePath] -> ParsedModules -> IO ()
+analyseCode fp nm exps fld hms = do d <- today
+                                    g <- newStdGen
+                                    let dc = doc d g
+                                    docOut <- createDocument pandocHtml' dc
+                                    case docOut of
+                                      Just path -> success path
+                                      Nothing   -> failure
     where
       pandocHtml' = alsoSaveDot pandocHtml
       graphdir = "graphs"
@@ -240,7 +241,9 @@ analyseCode fp nm exps hms = do d <- today
       c g = analyse g exps hms
       success fp' = putStrLn $ unwords ["Report generated at:",fp']
       failure = putErrLn "Unable to generate report"
-      notes = Section (Text "Notes") [msg, implicitMsg, linkMsg]
+      notes = Section (Text "Notes")
+              $ (if null fld then id else (++[failed]))
+                [msg, implicitMsg, linkMsg]
       msg = Paragraph [ Text "Please note that the source-code analysis in this\
                              \ document is not necessarily perfect: "
                       , Emphasis $ Text programmeName
@@ -264,3 +267,9 @@ analyseCode fp nm exps hms = do d <- today
                               ]
       linkMsg = Paragraph [Text "All graph visualisations link to larger \
                                  \SVG versions of the same graph."]
+      failed = Section (Text "Parsing Failures")
+               [ Paragraph [Text "The following source files were unable\
+                                 \ to be parsed; this may result in some\
+                                 \ analysis failures:"]
+               , Itemized $ map (Paragraph . return . Text) fld
+               ]

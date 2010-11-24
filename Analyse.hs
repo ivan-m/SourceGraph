@@ -41,6 +41,7 @@ import Data.GraphViz.Types
 import Data.GraphViz.Attributes
 
 import System.Random(RandomGen)
+import Control.Arrow(first)
 
 -- | Analyse an entire Haskell project.  Takes in a random seed,
 --   the list of exported modules and the parsed Haskell code in
@@ -52,15 +53,15 @@ analyse g exps hms = [ analyseEverything g exps hms
                      , analyseModules hms
                      ]
 
-sgLegend :: [(DocGraph, DocInline)]
-sgLegend = [ esCall
-           , mods
-           , esLoc
-           , esData
-           , esClass
-           , esExp
-           , callCats
-           ]
+sgLegend :: [(Either DocGraph DocInline, DocInline)]
+sgLegend = map (first Left) [ esCall
+                            , mods
+                            , esLoc
+                            , esData
+                            , esClass
+                            , esExp
+                            , callCats
+                            ]
 
 esCall, mods, esLoc, esData, esClass, esExp, callCats :: (DocGraph, DocInline)
 

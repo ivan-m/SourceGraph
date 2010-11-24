@@ -1,5 +1,5 @@
 Name:                SourceGraph
-Version:             0.6.1.1
+Version:             0.7.0.0
 Synopsis:            Static code analysis using graph-theoretic techniques.
 Description: {
 Statically analyse Haskell source code using graph-theoretic

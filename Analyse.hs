@@ -62,6 +62,7 @@ sgLegend = map (first Left) [ esCall
                             , esExp
                             , callCats
                             ]
+           ++ [first Right edgeExplain]
 
 esCall, mods, esLoc, esData, esClass, esExp, callCats :: (DocGraph, DocInline)
 
@@ -207,3 +208,12 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
                   }
       mkN (n,as)   = DotNode n as
       mkE (f,t,as) = DotEdge f t True as
+
+edgeExplain :: (DocInline, DocInline)
+edgeExplain = (Grouping cntnt, R.Bold $ Text "Edge Widths")
+  where
+    cntnt = [ Text "The width of each edge is calculated by:"
+            , BlankSpace
+            , Emphasis $ Text
+              "width = log (number of function calls) + 1"
+            ]

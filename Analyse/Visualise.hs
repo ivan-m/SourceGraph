@@ -121,7 +121,7 @@ callAttributes _  _ RecordConstructor      = [ Color [X11Color Magenta]
 
 callAttributes'                 :: GData n e -> LEdge (Int, CallType)
                                    -> Attributes
-callAttributes' hd (f,t,(n,ct)) = PenWidth (fromIntegral n)
+callAttributes' hd (f,t,(n,ct)) = PenWidth (log (fromIntegral n) + 1)
                                   : callAttributes hd (f,t) ct
 
 clustAttributes                 :: EntClustType -> Attributes

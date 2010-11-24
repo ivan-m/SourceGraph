@@ -51,7 +51,7 @@ drawGraph gid mm dg = setID (Str gid)
     where
       params = Params True gAttrs toClust ctypeID clustAttributes' nAttr eAttr
       dg' = origHData dg
-      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
       nAttr = entityAttributes dg' (isNothing mm) mm
@@ -64,7 +64,7 @@ drawGraph' gid dg = setID (Str gid)
     where
       params = Params True gAttrs N (const Nothing) modClustAttrs nAttr eAttr
       dg' = collapsedHData dg
-      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       nAttr = entityAttributes dg' False Nothing
       eAttr = callAttributes' dg'
 
@@ -75,7 +75,7 @@ drawGraph' gid dg = setID (Str gid)
 entityAttributes :: GData n e -> Bool -> Maybe ModName
                     -> LNode Entity -> Attributes
 entityAttributes hd a mm (n,Ent m nm t)
-    = [ Label $ StrLabel lbl
+    = [ toLabel lbl
       , Shape $ shapeFor t
       -- , Color [ColorName cl]
       , FillColor $ entCol hd n
@@ -141,7 +141,7 @@ clustAttributes DefInst{}       = [ Label . StrLabel $ "Default Instance"
                                   , Style [SItem Filled [], SItem Rounded []]
                                   , FillColor $ X11Color SlateGray1
                                   ]
-clustAttributes (ModPath p)     = [ Label $ StrLabel p ]
+clustAttributes (ModPath p)     = [ toLabel p ]
 
 clustAttributes' :: EntClustType -> [GlobalAttributes]
 clustAttributes' = return . GraphAttrs . clustAttributes
@@ -168,7 +168,7 @@ drawClusters gid cf dg = setID (Str gid)
                            , fmtEdge          = eAttr
                            }
       dg' = mapData' cf $ collapsedHData dg
-      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       cAttr = [GraphAttrs [ Style [SItem Filled []]
                           , FillColor clusterBackground
                           ]
@@ -190,7 +190,7 @@ drawLevels gid mm hd = setID (Str gid)
     dg = compactData hd'
     wrs = wantedRootNodes dg ++ S.toList (implicitExports vs dg)
     dg' = updateGraph (levelGraphFrom wrs) dg
-    gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+    gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
     nAttr = entityAttributes hd' (isNothing mm) mm
     eAttr = callAttributes' hd'
 
@@ -215,9 +215,9 @@ drawModules gid md = setID (Str gid)
     where
       params = Params True gAttrs clusteredModule cID cAttr nAttr eAttr
       cID (_,s) = bool Nothing (Just $ Str s) $ (not . null) s
-      gAttrs = [nodeAttrs] -- [GraphAttrs [Label $ StrLabel t]]
+      gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       cAttr dp = [GraphAttrs $ directoryAttributes dp]
-      nAttr (n,m) = [ Label $ StrLabel m
+      nAttr (n,m) = [ toLabel m
                     , FillColor $ entCol md n
                     , Shape Tab
                     ]
@@ -241,7 +241,7 @@ entCol d n = maybe defaultNodeColor snd
     hasNode = S.member n . fst
 
 nodeAttrs :: GlobalAttributes
-nodeAttrs = NodeAttrs [ Margin . PVal $ Point 0.4 0.1
+nodeAttrs = NodeAttrs [ Margin . PVal $ createPoint 0.4 0.1
                       , Style [SItem Filled []]
                       ]
 

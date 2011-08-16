@@ -70,7 +70,7 @@ import Analyse.Colors
 
 import Data.Graph.Analysis
 import Data.Graph.Inductive
-import Data.GraphViz.Attributes.Colors(Color)
+import Data.GraphViz.Attributes(X11Color)
 
 import Data.List(isPrefixOf)
 import Data.Maybe(mapMaybe)
@@ -84,12 +84,12 @@ import Control.Monad(liftM2)
 
 data GData n e = GD { graphData   :: GraphData n e
                     , compactData :: GraphData n (Int, e)
-                    , nodeCols    :: [(Set Node, Color)]
-                    , edgeCols    :: [(Set Edge, Color)]
+                    , nodeCols    :: [(Set Node, X11Color)]
+                    , edgeCols    :: [(Set Edge, X11Color)]
                     }
 
-mkGData       :: (Ord e) => (GraphData n e -> [(Set Node, Color)])
-                 -> (GraphData n e -> [(Set Edge, Color)])
+mkGData       :: (Ord e) => (GraphData n e -> [(Set Node, X11Color)])
+                 -> (GraphData n e -> [(Set Edge, X11Color)])
                  -> GraphData n e -> GData n e
 mkGData n e g = GD { graphData   = g
                    , compactData = updateGraph compactSame g
@@ -112,7 +112,7 @@ mapData f gd = GD { graphData   = gr'
 mapData'   :: (Ord e') => (AGr n e -> AGr n' e') -> GData n e -> GData n' e'
 mapData' f = mapData (updateGraph f)
 
-commonColors    :: GraphData n e -> [(Set Node, Color)]
+commonColors    :: GraphData n e -> [(Set Node, X11Color)]
 commonColors gd = [ (rs', exportedRootColor)
                   , (es, exportedInnerColor)
                   , (ls, leafColor)
@@ -178,7 +178,7 @@ type HSClustData = GraphData (GenCluster Entity) CallType
 type HSGraph = AGr Entity CallType
 type HSClustGraph = AGr (GenCluster Entity) CallType
 
-entColors       :: Set Entity -> GraphData Entity e -> [(Set Node, Color)]
+entColors       :: Set Entity -> GraphData Entity e -> [(Set Node, X11Color)]
 entColors vs hd = (us, inaccessibleColor)
                   :
                   commonColors hd
@@ -192,7 +192,7 @@ entColors vs hd = (us, inaccessibleColor)
     us = inaccessibleNodes hd'
     imps = implicitExports vs hd
 
-callColors    :: HSData -> [(Set Edge, Color)]
+callColors    :: HSData -> [(Set Edge, X11Color)]
 callColors hd = [ (cliqueEdges clqs, cliqueColor)
                 , (cycleEdges  cycs, cycleColor)
                 , (chainEdges  chns, chainColor)
@@ -283,12 +283,12 @@ mkMData = mkGData modColors modEdgeColors
 type ModData = GraphData ModName ()
 type ModGraph = AGr ModName ()
 
-modColors    :: GraphData ModName e -> [(Set Node, Color)]
+modColors    :: GraphData ModName e -> [(Set Node, X11Color)]
 modColors gd = (us, inaccessibleColor) : commonColors gd
   where
     us = inaccessibleNodes gd
 
-modEdgeColors    :: (Eq e) => GraphData ModName e -> [(Set Edge, Color)]
+modEdgeColors    :: (Eq e) => GraphData ModName e -> [(Set Edge, X11Color)]
 modEdgeColors gd = [ (cycleEdges cycs, cycleColor)
                    , (chainEdges chns, chainColor)
                    ]

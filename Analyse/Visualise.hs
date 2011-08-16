@@ -36,6 +36,7 @@ import Analyse.Colors
 
 import Data.Graph.Analysis hiding (Bold)
 import Data.GraphViz
+import Data.GraphViz.Attributes.Complete(Attribute(Margin), DPoint(PVal), createPoint)
 
 import Data.Maybe(isNothing)
 import Data.List(find)
@@ -45,7 +46,7 @@ import qualified Data.Set as S
 
 -- | Create the nested 'DotGraph'.
 drawGraph           :: String -> Maybe ModName -> HData' -> DotGraph Node
-drawGraph gid mm dg = setID (Str gid)
+drawGraph gid mm dg = setID (clustID gid)
                       . graphviz params $ compactData dg'
 
     where
@@ -59,10 +60,10 @@ drawGraph gid mm dg = setID (Str gid)
 
 -- | One-module-per-cluster 'DotGraph'.
 drawGraph'        :: String -> HData' -> DotGraph Node
-drawGraph' gid dg = setID (Str gid)
+drawGraph' gid dg = setID (clustID gid)
                     . graphvizClusters params $ compactData dg'
     where
-      params = Params True gAttrs N (const Nothing) modClustAttrs nAttr eAttr
+      params = Params True gAttrs N undefined modClustAttrs nAttr eAttr
       dg' = collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       nAttr = entityAttributes dg' False Nothing
@@ -76,12 +77,12 @@ entityAttributes :: GData n e -> Bool -> Maybe ModName
                     -> LNode Entity -> Attributes
 entityAttributes hd a mm (n,Ent m nm t)
     = [ toLabel lbl
-      , Shape $ shapeFor t
-      -- , Color [ColorName cl]
-      , FillColor $ entCol hd n
+      , shape $ shapeFor t
+      -- , Color ColorName cl
+      , fillColor $ entCol hd n
         -- Have to re-set Filled because setting a new Style seems to
         -- override global Style.
-      , Style [SItem Filled [], styleFor mm m]
+      , styles [filled, styleFor mm m]
       ]
     where
       lbl = bool nm (nameOfModule m ++ "\\n" ++ nm)
@@ -99,47 +100,46 @@ shapeFor CollapsedClass{}    = DoubleOctagon
 shapeFor CollapsedInstance{} = Octagon
 shapeFor NormalEntity        = BoxShape
 
-styleFor                 :: Maybe ModName -> ModName -> StyleItem
-styleFor mm m@LocalMod{} = flip SItem [] . bool Solid Bold
-                           $ maybe False (m==) mm
-styleFor _  ExtMod{}     = SItem Dashed []
-styleFor _  UnknownMod   = SItem Dotted []
+styleFor                 :: Maybe ModName -> ModName -> Style
+styleFor mm m@LocalMod{} = bool solid bold $ maybe False (m==) mm
+styleFor _  ExtMod{}     = dashed
+styleFor _  UnknownMod   = dotted
 
 callAttributes                             :: GData n e -> Edge -> CallType
                                               -> Attributes
-callAttributes hd e NormalCall             = [ Color [edgeCol hd e]]
-callAttributes _  _ InstanceDeclaration    = [ Color [X11Color Navy]
-                                             , Dir NoDir
+callAttributes hd e NormalCall             = [ color $ edgeCol hd e]
+callAttributes _  _ InstanceDeclaration    = [ color Navy
+                                             , edgeEnds NoDir
                                              ]
-callAttributes _  _ DefaultInstDeclaration = [ Color [X11Color Turquoise]
-                                             , Dir NoDir
+callAttributes _  _ DefaultInstDeclaration = [ color Turquoise
+                                             , edgeEnds NoDir
                                              ]
-callAttributes _  _ RecordConstructor      = [ Color [X11Color Magenta]
-                                             , ArrowTail oDot
-                                             , ArrowHead vee
+callAttributes _  _ RecordConstructor      = [ color Magenta
+                                             , arrowFrom oDot
+                                             , arrowTo vee
                                              ]
 
 callAttributes'                 :: GData n e -> LEdge (Int, CallType)
                                    -> Attributes
-callAttributes' hd (f,t,(n,ct)) = PenWidth (log (fromIntegral n) + 1)
+callAttributes' hd (f,t,(n,ct)) = penWidth (log (fromIntegral n) + 1)
                                   : callAttributes hd (f,t) ct
 
 clustAttributes                 :: EntClustType -> Attributes
-clustAttributes (ClassDefn c)   = [ Label . StrLabel $ "Class: " ++ c
-                                  , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ X11Color RosyBrown1
+clustAttributes (ClassDefn c)   = [ toLabel $ "Class: " ++ c
+                                  , styles [filled, rounded]
+                                  , fillColor RosyBrown1
                                   ]
-clustAttributes (DataDefn d)    = [ Label . StrLabel $ "Data: " ++ d
-                                  , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ X11Color PapayaWhip
+clustAttributes (DataDefn d)    = [ toLabel $ "Data: " ++ d
+                                  , styles [filled, rounded]
+                                  , fillColor PapayaWhip
                                   ]
-clustAttributes (ClassInst _ d) = [ Label . StrLabel $ "Instance for: " ++ d
-                                , Style [SItem Filled [], SItem Rounded []]
-                                , FillColor $ X11Color SlateGray1
-                                ]
-clustAttributes DefInst{}       = [ Label . StrLabel $ "Default Instance"
-                                  , Style [SItem Filled [], SItem Rounded []]
-                                  , FillColor $ X11Color SlateGray1
+clustAttributes (ClassInst _ d) = [ toLabel $ "Instance for: " ++ d
+                                  , styles [filled, rounded]
+                                  , fillColor SlateGray1
+                                  ]
+clustAttributes DefInst{}       = [ toLabel $ "Default Instance"
+                                  , styles [filled, rounded]
+                                  , fillColor SlateGray1
                                   ]
 clustAttributes (ModPath p)     = [ toLabel p ]
 
@@ -147,9 +147,9 @@ clustAttributes' :: EntClustType -> [GlobalAttributes]
 clustAttributes' = return . GraphAttrs . clustAttributes
 
 modClustAttrs   :: ModName -> [GlobalAttributes]
-modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
-                              , Style [SItem Filled []]
-                              , FillColor clusterBackground
+modClustAttrs m = [GraphAttrs [ toLabel $ nameOfModule m
+                              , style filled
+                              , fillColor clusterBackground
                               ]
                   ]
 
@@ -159,7 +159,7 @@ modClustAttrs m = [GraphAttrs [ Label . StrLabel $ nameOfModule m
 --   function shouldn't touch the the actual 'Node' values.
 drawClusters           :: String -> (HSGraph -> HSClustGraph)
                           -> HData' -> DotGraph Node
-drawClusters gid cf dg = setID (Str gid)
+drawClusters gid cf dg = setID (clustID gid)
                          . graphvizClusters params $ compactData dg'
     where
       params = blankParams { globalAttributes = gAttrs
@@ -169,15 +169,15 @@ drawClusters gid cf dg = setID (Str gid)
                            }
       dg' = mapData' cf $ collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
-      cAttr = [GraphAttrs [ Style [SItem Filled []]
-                          , FillColor clusterBackground
+      cAttr = [GraphAttrs [ style filled
+                          , fillColor clusterBackground
                           ]
               ]
       nAttr = entityAttributes dg' True Nothing
       eAttr = callAttributes' dg'
 
 drawLevels           :: String -> Maybe ModName -> HData' -> DotGraph Node
-drawLevels gid mm hd = setID (Str gid)
+drawLevels gid mm hd = setID (clustID gid)
                        $ graphvizClusters params dg'
   where
     params = blankParams { globalAttributes = gAttrs
@@ -200,9 +200,9 @@ levelAttr l
   | l == minLevel = atts "Exported root entities"
   | otherwise     = atts $ "Level = " ++ show l
     where
-      atts t = [GraphAttrs [ Label (StrLabel t)
-                           , Style [SItem Filled []]
-                           , FillColor clusterBackground
+      atts t = [GraphAttrs [ toLabel t
+                           , style filled
+                           , fillColor clusterBackground
                            ]
                ]
 
@@ -210,30 +210,30 @@ levelAttr l
 -- Dealing with inter-module imports, etc.
 
 drawModules        :: String -> MData -> DotGraph Node
-drawModules gid md = setID (Str gid)
+drawModules gid md = setID (clustID gid)
                      . graphviz params $ graphData md
     where
       params = Params True gAttrs clusteredModule cID cAttr nAttr eAttr
-      cID (_,s) = bool Nothing (Just $ Str s) $ (not . null) s
+      cID (_,s) = bool undefined (clustID s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       cAttr dp = [GraphAttrs $ directoryAttributes dp]
       nAttr (n,m) = [ toLabel m
-                    , FillColor $ entCol md n
-                    , Shape Tab
+                    , fillColor $ entCol md n
+                    , shape Tab
                     ]
-      eAttr le = [Color [edgeCol md $ edge le]]
+      eAttr le = [color . edgeCol md $ edge le]
 
 directoryAttributes       :: (Depth, String) -> Attributes
-directoryAttributes (d,n) = col : [Style [SItem Filled []]
-                                  , Label (StrLabel n)
+directoryAttributes (d,n) = col : [ style filled
+                                  , toLabel n
                                   ]
   where
-    col = bool (FillColor noBackground) (FillColor clusterBackground)
+    col = bool (fillColor noBackground) (fillColor clusterBackground)
           $ d `mod` 2 == 0
 
 -- -----------------------------------------------------------------------------
 
-entCol     :: GData n e -> Node -> Color
+entCol     :: GData n e -> Node -> X11Color
 entCol d n = maybe defaultNodeColor snd
              . find hasNode
              $ nodeCols d
@@ -242,10 +242,10 @@ entCol d n = maybe defaultNodeColor snd
 
 nodeAttrs :: GlobalAttributes
 nodeAttrs = NodeAttrs [ Margin . PVal $ createPoint 0.4 0.1
-                      , Style [SItem Filled []]
+                      , style filled
                       ]
 
-edgeCol     :: GData n e -> Edge -> Color
+edgeCol     :: GData n e -> Edge -> X11Color
 edgeCol d e = maybe defaultEdgeColor snd
               . find hasEdge
               $ edgeCols d

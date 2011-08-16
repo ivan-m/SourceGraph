@@ -204,7 +204,7 @@ clusteredModule (n,m) = go 0 $ modulePathOf m
       go _ []     = error "Shouldn't be able to have an empty module name."
 
 instance ClusterType ModName where
-    clustID = Just . Str . unDotPath . nameOfModule
+    clustID = clustID . unDotPath . nameOfModule
 
 instance ClusterLabel ModName where
     type Cluster ModName = String
@@ -324,12 +324,12 @@ data EntClustType = ClassDefn ClassName
                   | ModPath String
                     deriving (Eq, Ord, Show, Read)
 
-ctypeID                 :: EntClustType -> Maybe GraphID
-ctypeID (ClassDefn c)   = Just . Str $ "Class_" ++ escID c
-ctypeID (DataDefn d)    = Just . Str $ "Data_" ++ escID d
-ctypeID (ClassInst c d) = Just . Str $ "Class_" ++ escID c ++ "_Data_" ++ escID d
-ctypeID (DefInst c)     = Just . Str $ "DefaultInstance_" ++ escID c
-ctypeID (ModPath p)     = Just . Str $ "Directory_" ++ escID p
+ctypeID                 :: EntClustType -> GraphID
+ctypeID (ClassDefn c)   = clustID $ "Class_" ++ escID c
+ctypeID (DataDefn d)    = clustID $ "Data_" ++ escID d
+ctypeID (ClassInst c d) = clustID $ "Class_" ++ escID c ++ "_Data_" ++ escID d
+ctypeID (DefInst c)     = clustID $ "DefaultInstance_" ++ escID c
+ctypeID (ModPath p)     = clustID $ "Directory_" ++ escID p
 
 escID :: String -> String
 escID = filter (\c -> isLetter c || isDigit c || c == '_')

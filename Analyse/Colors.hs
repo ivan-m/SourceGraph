@@ -29,40 +29,40 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Analyse.Colors where
 
-import Data.GraphViz.Attributes.Colors
+import Data.GraphViz.Attributes
 
-inaccessibleColor :: Color
-inaccessibleColor = X11Color Crimson
+inaccessibleColor :: X11Color
+inaccessibleColor = Crimson
 
-exportedRootColor :: Color
-exportedRootColor = X11Color Gold
+exportedRootColor :: X11Color
+exportedRootColor = Gold
 
-exportedInnerColor :: Color
-exportedInnerColor = X11Color Goldenrod
+exportedInnerColor :: X11Color
+exportedInnerColor = Goldenrod
 
-implicitExportColor :: Color
-implicitExportColor = X11Color Khaki
+implicitExportColor :: X11Color
+implicitExportColor = Khaki
 
-leafColor :: Color
-leafColor = X11Color Cyan
+leafColor :: X11Color
+leafColor = Cyan
 
-defaultNodeColor :: Color
-defaultNodeColor = X11Color Bisque
+defaultNodeColor :: X11Color
+defaultNodeColor = Bisque
 
-defaultEdgeColor :: Color
-defaultEdgeColor = X11Color Black
+defaultEdgeColor :: X11Color
+defaultEdgeColor = Black
 
-cliqueColor :: Color
-cliqueColor = X11Color Orange
+cliqueColor :: X11Color
+cliqueColor = Orange
 
-cycleColor :: Color
-cycleColor = X11Color DarkOrchid
+cycleColor :: X11Color
+cycleColor = DarkOrchid
 
-chainColor :: Color
-chainColor = X11Color Chartreuse
+chainColor :: X11Color
+chainColor = Chartreuse
 
-clusterBackground :: Color
-clusterBackground = X11Color Lavender
+clusterBackground :: X11Color
+clusterBackground = Lavender
 
-noBackground :: Color
-noBackground = X11Color Snow
+noBackground :: X11Color
+noBackground = Snow

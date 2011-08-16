@@ -37,8 +37,11 @@ import Parsing.Types
 
 import Data.Graph.Analysis hiding (Bold)
 import qualified Data.Graph.Analysis.Reporting as R (DocInline(Bold))
-import Data.GraphViz.Types
+import Data.GraphViz.Types.Canonical
 import Data.GraphViz.Attributes
+import Data.GraphViz.Attributes.Complete( Attribute(OutputOrder, FontSize, Rank)
+                                        , OutputMode(EdgesFirst)
+                                        , RankType(MinRank))
 
 import System.Random(RandomGen)
 import Control.Arrow(first)
@@ -70,13 +73,13 @@ esCall = (dg', R.Bold txt)
     where
       dg' = DG "legend_call" (Text "Function Call") dg
       dg = mkLegendGraph ns es
-      nAs = [Shape BoxShape, FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel e1) : nAs)
-           , (2, Label (StrLabel e2) : nAs)
+      nAs = [shape BoxShape, fillColor defaultNodeColor]
+      ns = [ (1, toLabel e1 : nAs)
+           , (2, toLabel e2 : nAs)
            ]
       e1 = "f"
       e2 = "g"
-      eAs = [Color [X11Color Black]]
+      eAs = [color Black]
       es = [(1,2,eAs)]
       txt = Grouping [ Text "Two normal functions with"
                      , Emphasis $ Text e1
@@ -89,9 +92,9 @@ mods = (dg', R.Bold txt)
     where
       dg' = DG "legend_mods" (Text "Module Import") dg
       dg = mkLegendGraph ns es
-      nAs = [Shape Tab, FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel m1) : nAs)
-           , (2, Label (StrLabel m2) : nAs)
+      nAs = [shape Tab, fillColor defaultNodeColor]
+      ns = [ (1, toLabel m1 : nAs)
+           , (2, toLabel m2 : nAs)
            ]
       m1 = "Foo"
       m2 = "Bar"
@@ -107,15 +110,15 @@ esLoc = (dg', R.Bold $ Text "Entities from different modules.")
     where
       dg' = DG "legend_loc" (Text "From module") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel "Current module")
-                   : Style [SItem Bold []] : nAs)
-           , (2, Label (StrLabel "Other project module")
-                   : Style [SItem Solid []] : nAs)
-           , (3, Label (StrLabel "Known external module")
-                   : Style [SItem Dashed []] : nAs)
-           , (4, Label (StrLabel "Unknown external module")
-                   : Style [SItem Dotted []] : nAs)
+      nAs = [fillColor defaultNodeColor]
+      ns = [ (1, toLabel "Current module"
+                   : style bold : nAs)
+           , (2, toLabel "Other project module"
+                   : style solid : nAs)
+           , (3, toLabel "Known external module"
+                   : style dashed : nAs)
+           , (4, toLabel "Unknown external module"
+                   : style dotted : nAs)
            ]
       es = []
 
@@ -123,29 +126,29 @@ esData = (dg', R.Bold $ Text "Data type declaration.")
     where
       dg' = DG "legend_data" (Text "Data type declaration") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel "Constructor")
-                   : Shape Box3D : nAs)
-           , (2, Label (StrLabel "Record function")
-                   : Shape Component : nAs)
+      nAs = [fillColor defaultNodeColor]
+      ns = [ (1, toLabel "Constructor"
+                   : shape Box3D : nAs)
+           , (2, toLabel "Record function"
+                   : shape Component : nAs)
            ]
-      es = [(2,1,[ Color [X11Color Magenta], ArrowTail oDot, ArrowHead vee])]
+      es = [(2,1,[ color Magenta, arrowFrom oDot, arrowTo vee])]
 
 esClass = (dg', R.Bold $ Text "Class and instance declarations.")
     where
       dg' = DG "legend_class" (Text "Class declaration") dg
       dg = mkLegendGraph ns es
-      nAs = [FillColor defaultNodeColor]
-      ns = [ (1, Label (StrLabel "Default instance")
-                   : Shape Octagon : nAs)
-           , (2, Label (StrLabel "Class function")
-                   : Shape DoubleOctagon : nAs)
-           , (3, Label (StrLabel "Instance for data type")
-                   : Shape Octagon : nAs)
+      nAs = [fillColor defaultNodeColor]
+      ns = [ (1, toLabel "Default instance"
+                   : shape Octagon : nAs)
+           , (2, toLabel "Class function"
+                   : shape DoubleOctagon : nAs)
+           , (3, toLabel "Instance for data type"
+                   : shape Octagon : nAs)
            ]
-      eAs = [Dir NoDir]
-      es = [ (2,1, Color [X11Color Navy] : eAs)
-           , (2,3, Color [X11Color Turquoise] : eAs)
+      eAs = [edgeEnds NoDir]
+      es = [ (2,1, color Navy : eAs)
+           , (2,3, color Turquoise : eAs)
            ]
 
 esExp = (dg', R.Bold $ Text "Entity location/accessibility classification.")
@@ -153,18 +156,18 @@ esExp = (dg', R.Bold $ Text "Entity location/accessibility classification.")
       dg' = DG "legend_loc2" (Text "Entity Location") dg
       dg = mkLegendGraph ns es
       ns = zip [1..]
-           [ [ Label (StrLabel "Inaccessible entity")
-             , FillColor inaccessibleColor]
-           , [ Label (StrLabel "Exported root entity")
-             , FillColor exportedRootColor]
-           , [ Label (StrLabel "Exported non-root entity")
-             , FillColor exportedInnerColor]
-           , [ Label (StrLabel "Implicitly exported entity")
-             , FillColor implicitExportColor]
-           , [ Label (StrLabel "Leaf entity")
-             , FillColor leafColor]
-           , [ Label (StrLabel "Normal entity")
-             , FillColor defaultNodeColor]
+           [ [ toLabel "Inaccessible entity"
+             , fillColor inaccessibleColor]
+           , [ toLabel "Exported root entity"
+             , fillColor exportedRootColor]
+           , [ toLabel "Exported non-root entity"
+             , fillColor exportedInnerColor]
+           , [ toLabel "Implicitly exported entity"
+             , fillColor implicitExportColor]
+           , [ toLabel "Leaf entity"
+             , fillColor leafColor]
+           , [ toLabel "Normal entity"
+             , fillColor defaultNodeColor]
            ]
       es = []
 
@@ -172,12 +175,12 @@ callCats = (dg', R.Bold $ Text "Edge classification.")
   where
     dg' = DG "legend_edges" (Text "Edge Classification") dg
     dg = mkLegendGraph ns es
-    ns = map (flip (,) [Label (StrLabel ""), Shape PointShape]) [1..5]
-    eA = Dir NoDir
-    es = [ (1,2, [eA, Label (StrLabel "Clique"), Color [cliqueColor]])
-         , (2,3, [eA, Label (StrLabel "Cycle"), Color [cycleColor]])
-         , (3,4, [eA, Label (StrLabel "Chain"), Color [chainColor]])
-         , (4,5, [eA, Label (StrLabel "Normal"), Color [defaultEdgeColor]])
+    ns = map (flip (,) [toLabel "", shape PointShape]) [1..5]
+    eA = edgeEnds NoDir
+    es = [ (1,2, [eA, toLabel "Clique", color cliqueColor])
+         , (2,3, [eA, toLabel "Cycle", color cycleColor])
+         , (3,4, [eA, toLabel "Chain", color chainColor])
+         , (4,5, [eA, toLabel "Normal", color defaultEdgeColor])
          ]
 
 
@@ -195,7 +198,7 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
                                }
     where
       atts = [ GraphAttrs [OutputOrder EdgesFirst]
-             , NodeAttrs [FontSize 10, Style [SItem Filled []]]
+             , NodeAttrs [FontSize 10, style filled]
              ]
       sgAtts = [GraphAttrs [Rank MinRank]]
       nSG = DotSG { isCluster     = False
@@ -207,7 +210,7 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
                                              }
                   }
       mkN (n,as)   = DotNode n as
-      mkE (f,t,as) = DotEdge f t True as
+      mkE (f,t,as) = DotEdge f t as
 
 edgeExplain :: (DocInline, DocInline)
 edgeExplain = (Grouping cntnt, R.Bold $ Text "Edge Widths")

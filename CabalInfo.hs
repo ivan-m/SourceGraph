@@ -43,7 +43,7 @@ import Distribution.System(buildPlatform)
 
 import Data.List(nub)
 import Data.Maybe(isJust, fromJust)
-import Control.Exception.Extensible(SomeException(..), try)
+import Control.Exception(SomeException(..), try)
 import Control.Monad(liftM)
 import System.FilePath(dropExtension)
 

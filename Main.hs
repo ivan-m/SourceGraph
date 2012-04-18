@@ -55,7 +55,7 @@ import System.Random(newStdGen)
 import System.Environment(getArgs)
 import Control.Arrow(second)
 import Control.Monad(liftM)
-import Control.Exception.Extensible(SomeException(..), try)
+import Control.Exception(SomeException(..), try)
 
 import Data.Version(showVersion)
 import qualified Paths_SourceGraph as Paths(version)

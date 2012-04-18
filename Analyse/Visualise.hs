@@ -46,7 +46,7 @@ import qualified Data.Set as S
 
 -- | Create the nested 'DotGraph'.
 drawGraph           :: String -> Maybe ModName -> HData' -> DotGraph Node
-drawGraph gid mm dg = setID (clustID gid)
+drawGraph gid mm dg = setID (toGraphID gid)
                       . graphviz params $ compactData dg'
 
     where
@@ -60,7 +60,7 @@ drawGraph gid mm dg = setID (clustID gid)
 
 -- | One-module-per-cluster 'DotGraph'.
 drawGraph'        :: String -> HData' -> DotGraph Node
-drawGraph' gid dg = setID (clustID gid)
+drawGraph' gid dg = setID (toGraphID gid)
                     . graphvizClusters params $ compactData dg'
     where
       params = Params True gAttrs N undefined modClustAttrs nAttr eAttr
@@ -159,7 +159,7 @@ modClustAttrs m = [GraphAttrs [ toLabel $ nameOfModule m
 --   function shouldn't touch the the actual 'Node' values.
 drawClusters           :: String -> (HSGraph -> HSClustGraph)
                           -> HData' -> DotGraph Node
-drawClusters gid cf dg = setID (clustID gid)
+drawClusters gid cf dg = setID (toGraphID gid)
                          . graphvizClusters params $ compactData dg'
     where
       params = blankParams { globalAttributes = gAttrs
@@ -177,7 +177,7 @@ drawClusters gid cf dg = setID (clustID gid)
       eAttr = callAttributes' dg'
 
 drawLevels           :: String -> Maybe ModName -> HData' -> DotGraph Node
-drawLevels gid mm hd = setID (clustID gid)
+drawLevels gid mm hd = setID (toGraphID gid)
                        $ graphvizClusters params dg'
   where
     params = blankParams { globalAttributes = gAttrs
@@ -210,11 +210,11 @@ levelAttr l
 -- Dealing with inter-module imports, etc.
 
 drawModules        :: String -> MData -> DotGraph Node
-drawModules gid md = setID (clustID gid)
+drawModules gid md = setID (toGraphID gid)
                      . graphviz params $ graphData md
     where
       params = Params True gAttrs clusteredModule cID cAttr nAttr eAttr
-      cID (_,s) = bool undefined (clustID s) $ (not . null) s
+      cID (_,s) = bool undefined (toGraphID s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       cAttr dp = [GraphAttrs $ directoryAttributes dp]
       nAttr (n,m) = [ toLabel m

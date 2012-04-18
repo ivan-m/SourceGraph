@@ -39,9 +39,8 @@ import Data.Graph.Analysis hiding (Bold)
 import qualified Data.Graph.Analysis.Reporting as R (DocInline(Bold))
 import Data.GraphViz.Types.Canonical
 import Data.GraphViz.Attributes
-import Data.GraphViz.Attributes.Complete( Attribute(OutputOrder, FontSize, Rank)
-                                        , OutputMode(EdgesFirst)
-                                        , RankType(MinRank))
+import Data.GraphViz.Attributes.Complete( Attribute(OutputOrder, FontSize)
+                                        , OutputMode(EdgesFirst))
 
 import System.Random(RandomGen)
 import Control.Arrow(first)
@@ -200,7 +199,7 @@ mkLegendGraph ns es = DotGraph { strictGraph   = False
       atts = [ GraphAttrs [OutputOrder EdgesFirst]
              , NodeAttrs [FontSize 10, style filled]
              ]
-      sgAtts = [GraphAttrs [Rank MinRank]]
+      sgAtts = [GraphAttrs [rank MinRank]]
       nSG = DotSG { isCluster     = False
                   , subGraphID    = Nothing
                   , subGraphStmts = DotStmts { attrStmts = sgAtts

@@ -32,10 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 module Parsing.Types where
 
 import Data.Graph.Analysis.Types( ClusterLabel(..)
-                                , ClusterType(..)
                                 , Rel)
 import Data.Graph.Analysis.Reporting(unDotPath)
-import Data.GraphViz(GraphID(..), LNodeCluster, NodeCluster(..))
+import Data.GraphViz(GraphID(..), ToGraphID(..), LNodeCluster, NodeCluster(..))
 import Data.Graph.Inductive.Graph(LNode)
 
 import Data.Char(isLetter, isDigit)
@@ -203,8 +202,8 @@ clusteredModule (n,m) = go 0 $ modulePathOf m
       go d (p:ps) = C (d,p) $ go (succ d) ps
       go _ []     = error "Shouldn't be able to have an empty module name."
 
-instance ClusterType ModName where
-    clustID = clustID . unDotPath . nameOfModule
+instance ToGraphID ModName where
+    toGraphID = toGraphID . unDotPath . nameOfModule
 
 instance ClusterLabel ModName where
     type Cluster ModName = String
@@ -325,11 +324,11 @@ data EntClustType = ClassDefn ClassName
                     deriving (Eq, Ord, Show, Read)
 
 ctypeID                 :: EntClustType -> GraphID
-ctypeID (ClassDefn c)   = clustID $ "Class_" ++ escID c
-ctypeID (DataDefn d)    = clustID $ "Data_" ++ escID d
-ctypeID (ClassInst c d) = clustID $ "Class_" ++ escID c ++ "_Data_" ++ escID d
-ctypeID (DefInst c)     = clustID $ "DefaultInstance_" ++ escID c
-ctypeID (ModPath p)     = clustID $ "Directory_" ++ escID p
+ctypeID (ClassDefn c)   = toGraphID $ "Class_" ++ escID c
+ctypeID (DataDefn d)    = toGraphID $ "Data_" ++ escID d
+ctypeID (ClassInst c d) = toGraphID $ "Class_" ++ escID c ++ "_Data_" ++ escID d
+ctypeID (DefInst c)     = toGraphID $ "DefaultInstance_" ++ escID c
+ctypeID (ModPath p)     = toGraphID $ "Directory_" ++ escID p
 
 escID :: String -> String
 escID = filter (\c -> isLetter c || isDigit c || c == '_')

@@ -37,6 +37,7 @@ import Analyse
 
 import Data.Graph.Analysis
 import Data.Graph.Analysis.Reporting.Pandoc
+import Data.GraphViz.Commands(quitWithoutGraphviz)
 
 import Data.Char(toLower)
 import Data.Maybe(catMaybes)
@@ -63,7 +64,8 @@ import qualified Paths_SourceGraph as Paths(version)
 -- -----------------------------------------------------------------------------
 
 main :: IO ()
-main = do input <- getArgs
+main = do quitWithoutGraphviz noGraphvizErr
+          input <- getArgs
           mInfo <- getPkgInfo input
           case mInfo of
             Nothing -> putErrLn "No parseable package information found."
@@ -75,6 +77,9 @@ main = do input <- getArgs
                       (failed,hms) <- parseFilesFrom dir'
                       mapM_ (putErrLn . ("Could not parse source file "++)) failed
                       analyseCode dir nm exps failed hms
+  where
+    noGraphvizErr = "ERROR:" ++ programmeName ++ " requires the tools from \
+                    \http://graphviz.org to be installed."
 
 programmeName :: String
 programmeName = "SourceGraph"

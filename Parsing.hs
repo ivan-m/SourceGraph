@@ -66,7 +66,9 @@ parseFile (p,f) = case (parseFileContentsWithMode mode f) of
                     (ParseOk hs) -> Right hs
                     _            -> Left p
     where
-      mode = defaultParseMode { parseFilename = p }
+      mode = defaultParseMode { parseFilename = p
+                              , fixities = Nothing
+                              }
 
 -- | Parse all the files that you can.
 parseFiles :: [FileContents] -> ([FilePath],[Module])

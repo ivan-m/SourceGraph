@@ -50,11 +50,12 @@ drawGraph gid mm dg = setID (toGraphID gid)
                       . graphviz params $ compactData dg'
 
     where
-      params = Params True gAttrs toClust ctypeID clustAttributes' nAttr eAttr
+      params = Params True gAttrs toClust isClust ctypeID clustAttributes' nAttr eAttr
       dg' = origHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       -- Possible clustering problem
       toClust = clusterEntity -- bool clusterEntity clusterEntityM' $ isJust mm
+      isClust = const True
       nAttr = entityAttributes dg' (isNothing mm) mm
       eAttr = callAttributes' dg'
 
@@ -63,7 +64,7 @@ drawGraph'        :: String -> HData' -> DotGraph Node
 drawGraph' gid dg = setID (toGraphID gid)
                     . graphvizClusters params $ compactData dg'
     where
-      params = Params True gAttrs N undefined modClustAttrs nAttr eAttr
+      params = Params True gAttrs N undefined undefined modClustAttrs nAttr eAttr
       dg' = collapsedHData dg
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       nAttr = entityAttributes dg' False Nothing
@@ -213,7 +214,8 @@ drawModules        :: String -> MData -> DotGraph Node
 drawModules gid md = setID (toGraphID gid)
                      . graphviz params $ graphData md
     where
-      params = Params True gAttrs clusteredModule cID cAttr nAttr eAttr
+      params = Params True gAttrs clusteredModule isClust cID cAttr nAttr eAttr
+      isClust = const True
       cID (_,s) = bool undefined (toGraphID s) $ (not . null) s
       gAttrs = [nodeAttrs] -- [GraphAttrs [toLabel t]]
       cAttr dp = [GraphAttrs $ directoryAttributes dp]

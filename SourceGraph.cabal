@@ -1,5 +1,5 @@
 Name:                SourceGraph
-Version:             0.7.0.4
+Version:             0.7.0.5
 Synopsis:            Static code analysis using graph-theoretic techniques.
 Description: {
 Statically analyse Haskell source code using graph-theoretic
@@ -76,7 +76,7 @@ Executable SourceGraph {
                         mtl,
                         fgl >= 5.4.2.3 && < 5.5,
                         Graphalyze == 0.14.*,
-                        graphviz >= 2999.15.0.0 && < 2999.16,
+                        graphviz >= 2999.15.0.0 && < 2999.17,
                         Cabal >= 1.8 && < 1.17,
                         haskell-src-exts >= 1.5.0 && < 1.14.0
 }

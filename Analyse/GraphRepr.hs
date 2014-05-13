@@ -1,6 +1,4 @@
-{-# LANGUAGE TypeFamilies
-            , FlexibleContexts
- #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
 
 {-
 Copyright (C) 2010 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
@@ -64,21 +62,21 @@ module Analyse.GraphRepr
        , ModGraph
        ) where
 
-import Parsing.Types
-import Analyse.Utils
 import Analyse.Colors
+import Analyse.Utils
+import Parsing.Types
 
 import Data.Graph.Analysis
 import Data.Graph.Inductive
-import Data.GraphViz.Attributes(X11Color)
+import Data.GraphViz.Attributes (X11Color)
 
-import Data.List(isPrefixOf)
-import Data.Maybe(mapMaybe)
-import qualified Data.Map as M
-import Data.Map(Map)
-import qualified Data.Set as S
-import Data.Set(Set)
-import Control.Monad(liftM2)
+import           Control.Monad (liftM2)
+import           Data.List     (isPrefixOf)
+import           Data.Map      (Map)
+import qualified Data.Map      as M
+import           Data.Maybe    (mapMaybe)
+import           Data.Set      (Set)
+import qualified Data.Set      as S
 
 -- -----------------------------------------------------------------------------
 
@@ -87,6 +85,7 @@ data GData n e = GD { graphData   :: GraphData n e
                     , nodeCols    :: [(Set Node, X11Color)]
                     , edgeCols    :: [(Set Edge, X11Color)]
                     }
+                 deriving (Eq, Show, Read)
 
 mkGData       :: (Ord e) => (GraphData n e -> [(Set Node, X11Color)])
                  -> (GraphData n e -> [(Set Edge, X11Color)])
@@ -139,6 +138,7 @@ data HData' = HD' { origHData      :: HData
                   , collapsedHData :: HData
                   , collapsedVirts :: Set Entity
                   }
+              deriving (Eq, Show, Read)
 
 mkHData'       :: Set Entity -> HSData -> HData'
 mkHData' vs hs = HD' { origHData      = mkHData vs hs

@@ -77,6 +77,6 @@ Executable SourceGraph {
                         fgl >= 5.4.2.3 && < 5.5,
                         Graphalyze == 0.14.*,
                         graphviz >= 2999.15.0.0 && < 2999.17,
-                        Cabal >= 1.8 && < 1.17,
+                        Cabal >= 1.18.0 && < 1.21,
                         haskell-src-exts == 1.15.*
 }

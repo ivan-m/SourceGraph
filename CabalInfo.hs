@@ -29,29 +29,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module CabalInfo(parseCabal) where
 
+import Distribution.Compiler                         (CompilerId)
+import Distribution.ModuleName                       (toFilePath)
 import Distribution.Package
-import Distribution.PackageDescription hiding (author)
-import Distribution.PackageDescription.Parse
+import Distribution.PackageDescription               hiding (author)
 import Distribution.PackageDescription.Configuration
-import Distribution.Compiler(CompilerId)
-import Distribution.ModuleName(toFilePath)
-import Distribution.Verbosity(silent)
-import Distribution.Simple.Compiler(compilerId)
-import Distribution.Simple.GHC(configure)
-import Distribution.Simple.Program(defaultProgramConfiguration)
-import Distribution.System(buildPlatform)
+import Distribution.PackageDescription.Parse
+import Distribution.Simple.Compiler                  (compilerId)
+import Distribution.Simple.GHC                       (configure)
+import Distribution.Simple.Program                   (defaultProgramConfiguration)
+import Distribution.System                           (buildPlatform)
+import Distribution.Verbosity                        (silent)
 
-import Data.List(nub)
-import Data.Maybe(isJust, fromJust)
-import Control.Exception(SomeException(..), try)
-import Control.Monad(liftM)
-import System.FilePath(dropExtension)
+import Control.Exception (SomeException (..), try)
+import Control.Monad     (liftM)
+import Data.List         (nub)
+import Data.Maybe        (fromJust, isJust)
+import System.FilePath   (dropExtension)
 
 -- -----------------------------------------------------------------------------
 
 ghcID :: IO CompilerId
-ghcID = liftM (compilerId . fst)
+ghcID = liftM (compilerId . getCompiler)
         $ configure silent Nothing Nothing defaultProgramConfiguration
+  where
+    getCompiler (comp,_mplat,_progconfig) = comp
 
 parseCabal    :: FilePath -> IO (Maybe (String, [FilePath]))
 parseCabal fp = do cID <- ghcID

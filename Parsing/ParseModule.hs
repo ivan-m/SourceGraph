@@ -31,22 +31,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Parsing.ParseModule(parseModule) where
 
-import Parsing.Types
 import Parsing.State
+import Parsing.Types
 
-import Language.Haskell.Exts.Syntax
 import Language.Haskell.Exts.Pretty
+import Language.Haskell.Exts.Syntax
 
-import Data.Char(isUpper)
-import Data.Foldable(foldrM)
-import Data.Maybe(fromMaybe, catMaybes, fromJust)
-import qualified Data.Map as M
-import qualified Data.Set as S
-import Data.Set(Set)
+import           Control.Arrow (second, (***))
+import           Control.Monad (liftM, liftM2)
+import           Data.Char     (isUpper)
+import           Data.Foldable (foldrM)
+import qualified Data.Map      as M
+import           Data.Maybe    (catMaybes, fromJust, fromMaybe)
+import           Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MS
-import Data.MultiSet(MultiSet)
-import Control.Arrow((***), second)
-import Control.Monad(liftM, liftM2)
+import           Data.Set      (Set)
+import qualified Data.Set      as S
 
 -- -----------------------------------------------------------------------------
 
@@ -511,7 +511,7 @@ getPat (PInfixApp p1 c p2) = do (v1, c1) <- getPat p1
 -- Data constructor + args
 getPat (PApp qn ps)        = liftM (second $ insQName qn) $ getPats ps
 -- Tuple
-getPat (PTuple ps)         = getPats ps
+getPat (PTuple _ ps)       = getPats ps
 -- Explicit list
 getPat (PList ps)          = getPats ps
 -- Parens around a Pat
@@ -612,8 +612,8 @@ getExp (Case e as) = do e' <- getExp e
                         return $ MS.unions (e':as')
 getExp (Do ss) = chainedCalled $ map getStmt ss
 getExp (MDo ss) = liftM (uncurry defElsewhere') $ getStmts ss
-getExp (Tuple es) = getExps es
-getExp (TupleSection mes) = getExps $ catMaybes mes
+getExp (Tuple _ es) = getExps es
+getExp (TupleSection _ mes) = getExps $ catMaybes mes
 getExp (List es) = getExps es
 getExp (Paren e) = getExp e
 getExp (LeftSection e o) = liftM (MS.union (maybeEnt o)) $ getExp e

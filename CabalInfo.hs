@@ -29,13 +29,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module CabalInfo(parseCabal) where
 
-import Distribution.Compiler                         (CompilerId)
+import Distribution.Compiler                         (CompilerInfo)
 import Distribution.ModuleName                       (toFilePath)
 import Distribution.Package
 import Distribution.PackageDescription               hiding (author)
 import Distribution.PackageDescription.Configuration
 import Distribution.PackageDescription.Parse
-import Distribution.Simple.Compiler                  (compilerId)
+import Distribution.Simple.Compiler                  (compilerInfo)
 import Distribution.Simple.GHC                       (configure)
 import Distribution.Simple.Program                   (defaultProgramConfiguration)
 import Distribution.System                           (buildPlatform)
@@ -49,8 +49,8 @@ import System.FilePath   (dropExtension)
 
 -- -----------------------------------------------------------------------------
 
-ghcID :: IO CompilerId
-ghcID = liftM (compilerId . getCompiler)
+ghcID :: IO CompilerInfo
+ghcID = liftM (compilerInfo . getCompiler)
         $ configure silent Nothing Nothing defaultProgramConfiguration
   where
     getCompiler (comp,_mplat,_progconfig) = comp

@@ -43,8 +43,8 @@ Extra-Source-Files: TODO
                     ChangeLog
 
 Source-Repository head
-    Type:         darcs
-    Location:     http://code.haskell.org/SourceGraph
+    Type:         git
+    Location:     https://github.com/ivan-m/SourceGraph
 
 
 Executable SourceGraph {

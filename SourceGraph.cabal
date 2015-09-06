@@ -42,6 +42,9 @@ Build-Type:          Simple
 Extra-Source-Files: TODO
                     ChangeLog
 
+Tested-With:         GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4,
+                     GHC == 7.10.2, GHC == 7.11.*
+
 Source-Repository head
     Type:         git
     Location:     https://github.com/ivan-m/SourceGraph

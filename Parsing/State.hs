@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving #-}
 
 {-
 Copyright (C) 2009 Ivan Lazar Miljenovic <Ivan.Miljenovic@gmail.com>
@@ -45,6 +45,10 @@ import Parsing.Types
 
 import Control.Monad.RWS
 
+#if !(MIN_VERSION_base (4,8,0))
+import Control.Applicative (Applicative)
+#endif
+
 -- -----------------------------------------------------------------------------
 
 runPState               :: ParsedModules -> ModuleNames
@@ -68,7 +72,7 @@ newtype PState value
   = PS { runPS :: RWS ModuleData ModuleWrite ParsedModule value }
     -- Note: don't derive MonadReader, etc. as don't want anything
     -- outside this module to get the actual types used.
-  deriving (Monad, MonadState ParsedModule, MonadWriter ModuleWrite)
+  deriving (Functor, Applicative, Monad, MonadState ParsedModule, MonadWriter ModuleWrite)
 
 asks' :: (ModuleData -> a) -> PState a
 asks' = PS . asks

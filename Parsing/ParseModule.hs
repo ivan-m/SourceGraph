@@ -42,7 +42,7 @@ import           Control.Monad (liftM, liftM2)
 import           Data.Char     (isUpper)
 import           Data.Foldable (foldrM)
 import qualified Data.Map      as M
-import           Data.Maybe    (catMaybes, fromJust, fromMaybe)
+import           Data.Maybe    (catMaybes, fromJust, fromMaybe, maybeToList)
 import           Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MS
 import           Data.Set      (Set)
@@ -115,7 +115,7 @@ instance ModuleItem ImportDecl where
 -- | Guesstimate the correct 'Entity' designation for those from
 --   external modules.
 createEnt                      :: ModName -> ImportSpec -> [Entity]
-createEnt mn (IVar n)          = [Ent mn (nameOf n) NormalEntity]
+createEnt mn (IVar _ n)        = [Ent mn (nameOf n) NormalEntity]
 createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
     where
       n' = nameOf n
@@ -131,7 +131,7 @@ createEnt _  _                 = []
 -- | Determine the correct 'Entity' designation for the listed import item.
 listedEnt                         :: ParsedModule -> EntityLookup
                                      -> ImportSpec -> [Entity]
-listedEnt _  el (IVar n)          = [lookupEntity' el $ nameOf n]
+listedEnt _  el (IVar _ n)        = [lookupEntity' el $ nameOf n]
 listedEnt _  _  IAbs{}            = []
 listedEnt pm _  (IThingAll n)     = esFrom dataDecls ++ esFrom classDecls
                                     -- one will be empty
@@ -164,7 +164,7 @@ instance ModuleItem (Maybe [ExportSpec]) where
 -- Doesn't work on re-exported Class/Data specs.
 listedExp                           :: ParsedModule -> EntityLookup
                                        -> ExportSpec -> [Entity]
-listedExp _  el (EVar qn)           = maybe [] (return . lookupEntity el)
+listedExp _  el (EVar _ qn)         = maybe [] (return . lookupEntity el)
                                       $ qName qn
 listedExp _  _  EAbs{}              = []
 listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
@@ -228,7 +228,7 @@ instance ModuleItem Decl where
                  cl' = M.insert c el $ classDecls pm
              put $ pm { classDecls = cl' }
     -- Instance of a class
-    parseInfo (InstDecl _ _ n ts ids)
+    parseInfo (InstDecl _ _ _ _ n ts ids)
         = do let c = snd . fromJust $ qName n
                  d = unwords $ map prettyPrint ts
              mapM_ (addInstDecl c d) ids
@@ -302,7 +302,7 @@ addConstructor d (RecDecl n rbs) = do m <- getModuleName
 addGConstructors     :: ModName -> DataType -> [GadtDecl] -> EntityLookup
 addGConstructors m d = mkEl . map addGConst
     where
-      addGConst (GadtDecl _ n _) = Ent m (nameOf n) (Constructor d)
+      addGConst (GadtDecl _ n _ _) = Ent m (nameOf n) (Constructor d)
 
 -- -----------------------------------------------------------------------------
 -- Class declaration
@@ -499,8 +499,6 @@ getPat                     :: Pat -> PState DefCalled
 getPat (PVar n)            = return $ onlyVar n
 -- Literal value
 getPat PLit{}              = return noEnts
--- Negation of a Pat value
-getPat (PNeg p)            = getPat p
 -- n + k pattern
 getPat (PNPlusK n _)       = return $ onlyVar n
 -- e.g. a : as
@@ -552,7 +550,7 @@ onlyVar n = (S.singleton $ nameOf' n, MS.empty)
 -- Record wildcards: nothing returned
 getPField                  :: PatField -> PState DefCalled
 getPField (PFieldPat qn p) = liftM (second $ insQName qn) $ getPat p
-getPField (PFieldPun n)    = return (S.empty, MS.singleton $ nameOf' n)
+getPField (PFieldPun n)    = return (S.empty, MS.fromList . maybeToList $ qName n)
 getPField PFieldWildcard   = return noEnts
 
 -- Still have to take care of function calls here somewhere...
@@ -568,12 +566,12 @@ getIPBinds (IPBind _ _ e) = liftM noDefs $ getExp e
 
 getDecl                    :: Decl -> PState DefCalled
 getDecl (FunBind ms)       = liftM sMsUnions $ mapM getMatch ms
-getDecl (PatBind _ p _ r bs) = do (pd,pc) <- getPat p
-                                  rc      <- getRHS r
-                                  (bd,bc) <- getBindings bs
-                                  let fs = MS.unions [pc, rc, bc]
-                                      cs = defElsewhere fs bd
-                                  return (pd, cs)
+getDecl (PatBind _ p r bs) = do (pd,pc) <- getPat p
+                                rc      <- getRHS r
+                                (bd,bc) <- getBindings bs
+                                let fs = MS.unions [pc, rc, bc]
+                                    cs = defElsewhere fs bd
+                                return (pd, cs)
 getDecl _                  = return noEnts
 
 
@@ -666,25 +664,16 @@ getFUpdates = liftM MS.unions . mapM getFUpdate
 
 getFUpdate                    :: FieldUpdate -> PState Called
 getFUpdate (FieldUpdate qn e) = liftM (MS.union (maybeEnt qn)) $ getExp e
-getFUpdate (FieldPun n)       = return . MS.singleton $ nameOf' n
+getFUpdate (FieldPun n)       = return . MS.fromList . maybeToList $ qName n
 getFUpdate _                  = return MS.empty
 
 getAlt                  :: Alt -> PState Called
 getAlt (Alt _ p gas bs) = do (pd,pc) <- getPat p
-                             gc <- getGAlts gas
+                             gc <- getRHS gas
                              (bd,bc) <- getBindings bs
                              let d = pd `S.union` bd
                                  c = pc `MS.union` gc `MS.union` bc
                              return $ defElsewhere c d
-
-getGAlts                   :: GuardedAlts -> PState Called
-getGAlts (UnGuardedAlt e)  = getExp e
-getGAlts (GuardedAlts gas) = liftM MS.unions $ mapM getGAlt gas
-
-getGAlt                     :: GuardedAlt -> PState Called
-getGAlt (GuardedAlt _ ss e) = do (sf, sc) <- getStmts ss
-                                 ec <- getExp e
-                                 return $ defElsewhere' sf (MS.union sc ec)
 
 getStmt                   :: Stmt -> PState DefCalled
 getStmt (Generator _ p e) = do (pf,pc) <- getPat p

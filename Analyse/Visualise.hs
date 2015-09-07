@@ -29,18 +29,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Analyse.Visualise where
 
-import Parsing.Types
+import Analyse.Colors
 import Analyse.GraphRepr
 import Analyse.Utils
-import Analyse.Colors
+import Parsing.Types
 
-import Data.Graph.Analysis hiding (Bold)
+import Data.Graph.Analysis               hiding (Bold)
 import Data.GraphViz
-import Data.GraphViz.Attributes.Complete(Attribute(Margin), DPoint(PVal), createPoint)
+import Data.GraphViz.Attributes.Complete (Attribute (Margin), DPoint (PVal),
+                                          createPoint)
 
-import Data.Maybe(isNothing)
-import Data.List(find)
-import qualified Data.Set as S
+import           Data.List  (find)
+import           Data.Maybe (isNothing)
+import qualified Data.Set   as S
 
 -- -----------------------------------------------------------------------------
 
@@ -249,7 +250,7 @@ nodeAttrs = NodeAttrs [ Margin . PVal $ createPoint 0.4 0.1
 
 edgeCol     :: GData n e -> Edge -> X11Color
 edgeCol d e = maybe defaultEdgeColor snd
-              . find hasEdge
+              . find hasE
               $ edgeCols d
   where
-    hasEdge = S.member e . fst
+    hasE = S.member e . fst

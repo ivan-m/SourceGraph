@@ -68,7 +68,7 @@ Executable SourceGraph {
                         Analyse.Everything,
                         Paths_SourceGraph
     Ghc-Options:        -Wall
-    Ghc-Prof-Options:   -prof -auto-all
+    Ghc-Prof-Options:   -prof
 
     Build-Depends:      base == 4.*,
                         containers,

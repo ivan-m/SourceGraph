@@ -115,7 +115,7 @@ instance ModuleItem ImportDecl where
 -- | Guesstimate the correct 'Entity' designation for those from
 --   external modules.
 createEnt                      :: ModName -> ImportSpec -> [Entity]
-createEnt mn (IVar _ n)        = [Ent mn (nameOf n) NormalEntity]
+createEnt mn (IVar n)          = [Ent mn (nameOf n) NormalEntity]
 createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
     where
       n' = nameOf n
@@ -131,7 +131,7 @@ createEnt _  _                 = []
 -- | Determine the correct 'Entity' designation for the listed import item.
 listedEnt                         :: ParsedModule -> EntityLookup
                                      -> ImportSpec -> [Entity]
-listedEnt _  el (IVar _ n)        = [lookupEntity' el $ nameOf n]
+listedEnt _  el (IVar n)          = [lookupEntity' el $ nameOf n]
 listedEnt _  _  IAbs{}            = []
 listedEnt pm _  (IThingAll n)     = esFrom dataDecls ++ esFrom classDecls
                                     -- one will be empty
@@ -164,7 +164,7 @@ instance ModuleItem (Maybe [ExportSpec]) where
 -- Doesn't work on re-exported Class/Data specs.
 listedExp                           :: ParsedModule -> EntityLookup
                                        -> ExportSpec -> [Entity]
-listedExp _  el (EVar _ qn)         = maybe [] (return . lookupEntity el)
+listedExp _  el (EVar qn)           = maybe [] (return . lookupEntity el)
                                       $ qName qn
 listedExp _  _  EAbs{}              = []
 listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
@@ -486,7 +486,7 @@ type DefCalled = (Defined, Called)
 getMatch                         :: Match -> PState DefCalled
 getMatch (Match _ n ps _ rhs bs) = do (avs, afs) <- getPats ps
                                       rcs <- getRHS rhs
-                                      (bds, bcs) <- getBindings bs
+                                      (bds, bcs) <- maybe (return $ noDefs rcs) getBindings bs
                                       let vs = avs `S.union` bds
                                           fs = MS.unions [afs, rcs, bcs]
                                           cs = defElsewhere fs vs
@@ -568,7 +568,7 @@ getDecl                    :: Decl -> PState DefCalled
 getDecl (FunBind ms)       = liftM sMsUnions $ mapM getMatch ms
 getDecl (PatBind _ p r bs) = do (pd,pc) <- getPat p
                                 rc      <- getRHS r
-                                (bd,bc) <- getBindings bs
+                                (bd,bc) <- maybe (return $ noDefs rc) getBindings bs
                                 let fs = MS.unions [pc, rc, bc]
                                     cs = defElsewhere fs bd
                                 return (pd, cs)
@@ -670,7 +670,7 @@ getFUpdate _                  = return MS.empty
 getAlt                  :: Alt -> PState Called
 getAlt (Alt _ p gas bs) = do (pd,pc) <- getPat p
                              gc <- getRHS gas
-                             (bd,bc) <- getBindings bs
+                             (bd,bc) <- maybe (return $ noDefs gc) getBindings bs
                              let d = pd `S.union` bd
                                  c = pc `MS.union` gc `MS.union` bc
                              return $ defElsewhere c d

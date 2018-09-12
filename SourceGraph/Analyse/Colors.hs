@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Utility functions and types for analysis.
  -}
-module Analyse.Colors where
+module SourceGraph.Analyse.Colors where
 
 import Data.GraphViz.Attributes
 

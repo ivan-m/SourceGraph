@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Types for parsing Haskell modules.
  -}
-module Parsing.Types where
+module SourceGraph.Parsing.Types where
 
 import Data.Graph.Analysis.Types( ClusterLabel(..)
                                 , Rel)

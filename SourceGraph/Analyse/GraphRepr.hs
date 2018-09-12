@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Interacting with GraphData from Graphalyze.
  -}
-module Analyse.GraphRepr
+module SourceGraph.Analyse.GraphRepr
        ( -- * General stuff
          GData(..)
        , mapData
@@ -62,9 +62,9 @@ module Analyse.GraphRepr
        , ModGraph
        ) where
 
-import Analyse.Colors
-import Analyse.Utils
-import Parsing.Types
+import SourceGraph.Analyse.Colors
+import SourceGraph.Analyse.Utils
+import SourceGraph.Parsing.Types
 
 import Data.Graph.Analysis
 import Data.Graph.Inductive

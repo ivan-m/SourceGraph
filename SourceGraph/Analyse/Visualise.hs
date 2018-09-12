@@ -27,12 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Utility functions and types for analysis.
  -}
-module Analyse.Visualise where
+module SourceGraph.Analyse.Visualise where
 
-import Analyse.Colors
-import Analyse.GraphRepr
-import Analyse.Utils
-import Parsing.Types
+import SourceGraph.Analyse.Colors
+import SourceGraph.Analyse.GraphRepr
+import SourceGraph.Analyse.Utils
+import SourceGraph.Parsing.Types
 
 import Data.Graph.Analysis               hiding (Bold)
 import Data.GraphViz

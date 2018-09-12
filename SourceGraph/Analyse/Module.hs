@@ -27,12 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of Haskell modules.
  -}
-module Analyse.Module(analyseModules) where
+module SourceGraph.Analyse.Module(analyseModules) where
 
-import Parsing.Types
-import Analyse.Utils
-import Analyse.GraphRepr
-import Analyse.Visualise
+import SourceGraph.Parsing.Types
+import SourceGraph.Analyse.Utils
+import SourceGraph.Analyse.GraphRepr
+import SourceGraph.Analyse.Visualise
 
 import Data.Graph.Analysis
 

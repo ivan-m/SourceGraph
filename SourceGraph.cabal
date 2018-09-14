@@ -49,22 +49,20 @@ Source-Repository head
     Location:     https://github.com/ivan-m/SourceGraph
 
 Library
-  exposed-modules:
-    SourceGraph.Analyse.Colors
-    SourceGraph.Analyse.Everything
-    SourceGraph.Analyse.GraphRepr
-    SourceGraph.Analyse.Imports
-    SourceGraph.Analyse.Module
-    SourceGraph.Analyse.Utils
-    SourceGraph.Analyse.Visualise
-    SourceGraph.Parsing.ParseModule
-    SourceGraph.Parsing.State
-    SourceGraph.Parsing.Types
-    SourceGraph.Analyse
-    SourceGraph.Parsing
+  exposed-modules: Language.Haskell.SourceGraph.Analyse.Colors,
+                   Language.Haskell.SourceGraph.Analyse.Everything,
+                   Language.Haskell.SourceGraph.Analyse.GraphRepr,
+                   Language.Haskell.SourceGraph.Analyse.Imports,
+                   Language.Haskell.SourceGraph.Analyse.Module,
+                   Language.Haskell.SourceGraph.Analyse.Utils,
+                   Language.Haskell.SourceGraph.Analyse.Visualise,
+                   Language.Haskell.SourceGraph.Parsing.ParseModule,
+                   Language.Haskell.SourceGraph.Parsing.State,
+                   Language.Haskell.SourceGraph.Parsing.Types,
+                   Language.Haskell.SourceGraph.Analyse,
+                   Language.Haskell.SourceGraph.Parsing
   Hs-source-dirs:   .
-  Other-Modules:
-    Paths_SourceGraph
+  Other-Modules: Paths_SourceGraph
   Build-Depends:        base == 4.*,
                         containers,
                         multiset,
@@ -80,20 +78,20 @@ Library
 
 Executable SourceGraph {
 
-    Main-Is:            SourceGraph/Main.hs
-    Other-Modules:      SourceGraph.CabalInfo,
-                        SourceGraph.Parsing,
-                        SourceGraph.Parsing.ParseModule,
-                        SourceGraph.Parsing.State,
-                        SourceGraph.Parsing.Types,
-                        SourceGraph.Analyse,
-                        SourceGraph.Analyse.Utils,
-                        SourceGraph.Analyse.Colors,
-                        SourceGraph.Analyse.GraphRepr,
-                        SourceGraph.Analyse.Visualise,
-                        SourceGraph.Analyse.Module,
-                        SourceGraph.Analyse.Imports,
-                        SourceGraph.Analyse.Everything,
+    Main-Is:            SourceGraph.hs
+    Other-Modules:      Language.Haskell.SourceGraph.CabalInfo,
+                        Language.Haskell.SourceGraph.Parsing,
+                        Language.Haskell.SourceGraph.Parsing.ParseModule,
+                        Language.Haskell.SourceGraph.Parsing.State,
+                        Language.Haskell.SourceGraph.Parsing.Types,
+                        Language.Haskell.SourceGraph.Analyse,
+                        Language.Haskell.SourceGraph.Analyse.Utils,
+                        Language.Haskell.SourceGraph.Analyse.Colors,
+                        Language.Haskell.SourceGraph.Analyse.GraphRepr,
+                        Language.Haskell.SourceGraph.Analyse.Visualise,
+                        Language.Haskell.SourceGraph.Analyse.Module,
+                        Language.Haskell.SourceGraph.Analyse.Imports,
+                        Language.Haskell.SourceGraph.Analyse.Everything,
                         Paths_SourceGraph
     Ghc-Options:        -Wall
     Ghc-Prof-Options:   -prof

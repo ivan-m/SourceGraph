@@ -27,12 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Utility functions and types for analysis.
  -}
-module SourceGraph.Analyse.Visualise where
+module Language.Haskell.SourceGraph.Analyse.Visualise where
 
-import SourceGraph.Analyse.Colors
-import SourceGraph.Analyse.GraphRepr
-import SourceGraph.Analyse.Utils
-import SourceGraph.Parsing.Types
+import Language.Haskell.SourceGraph.Analyse.Colors
+import Language.Haskell.SourceGraph.Analyse.GraphRepr
+import Language.Haskell.SourceGraph.Analyse.Utils
+import Language.Haskell.SourceGraph.Parsing.Types
 
 import Data.Graph.Analysis               hiding (Bold)
 import Data.GraphViz

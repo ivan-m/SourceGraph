@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Interacting with GraphData from Graphalyze.
  -}
-module SourceGraph.Analyse.GraphRepr
+module Language.Haskell.SourceGraph.Analyse.GraphRepr
        ( -- * General stuff
          GData(..)
        , mapData
@@ -62,9 +62,9 @@ module SourceGraph.Analyse.GraphRepr
        , ModGraph
        ) where
 
-import SourceGraph.Analyse.Colors
-import SourceGraph.Analyse.Utils
-import SourceGraph.Parsing.Types
+import Language.Haskell.SourceGraph.Analyse.Colors
+import Language.Haskell.SourceGraph.Analyse.Utils
+import Language.Haskell.SourceGraph.Parsing.Types
 
 import Data.Graph.Analysis
 import Data.Graph.Inductive

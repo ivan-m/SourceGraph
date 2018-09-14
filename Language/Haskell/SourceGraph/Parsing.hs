@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Parse the given Haskell modules.
  -}
-module SourceGraph.Parsing where
+module Language.Haskell.SourceGraph.Parsing where
 
-import SourceGraph.Parsing.Types
-import SourceGraph.Parsing.ParseModule
+import Language.Haskell.SourceGraph.Parsing.Types
+import Language.Haskell.SourceGraph.Parsing.ParseModule
 
 import Language.Haskell.Exts(parseFileContentsWithMode)
 import Language.Haskell.Exts.Parser( ParseMode(..)

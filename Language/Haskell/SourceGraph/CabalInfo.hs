@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Used to parse and obtain information from the provided Cabal file.
  -}
-module SourceGraph.CabalInfo(parseCabal) where
+module Language.Haskell.SourceGraph.CabalInfo(parseCabal) where
 
 import Distribution.Compiler                         (CompilerInfo)
 import Distribution.ModuleName                       (toFilePath)

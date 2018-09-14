@@ -27,12 +27,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of Haskell module importing.
  -}
-module SourceGraph.Analyse.Imports (analyseImports) where
+module Language.Haskell.SourceGraph.Analyse.Imports (analyseImports) where
 
-import SourceGraph.Parsing.Types
-import SourceGraph.Analyse.Utils
-import SourceGraph.Analyse.GraphRepr
-import SourceGraph.Analyse.Visualise
+import Language.Haskell.SourceGraph.Parsing.Types
+import Language.Haskell.SourceGraph.Analyse.Utils
+import Language.Haskell.SourceGraph.Analyse.GraphRepr
+import Language.Haskell.SourceGraph.Analyse.Visualise
 
 import Data.Graph.Analysis
 

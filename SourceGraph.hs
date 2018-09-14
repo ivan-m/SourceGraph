@@ -30,10 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Main where
 
-import SourceGraph.CabalInfo
-import SourceGraph.Parsing
-import SourceGraph.Parsing.Types(nameOfModule,ParsedModules,ModName(..))
-import SourceGraph.Analyse
+import Language.Haskell.SourceGraph.CabalInfo
+import Language.Haskell.SourceGraph.Parsing
+import Language.Haskell.SourceGraph.Parsing.Types(nameOfModule,ParsedModules,ModName(..))
+import Language.Haskell.SourceGraph.Analyse
 
 import Data.Graph.Analysis
 import Data.Graph.Analysis.Reporting.Pandoc

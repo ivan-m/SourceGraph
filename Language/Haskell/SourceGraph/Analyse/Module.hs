@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of Haskell modules.
  -}
-module Language.Haskell.SourceGraph.Analyse.Module(analyseModules) where
+module Language.Haskell.SourceGraph.Analyse.Module(analyseModules,moduleToGraph) where
 
 import Language.Haskell.SourceGraph.Parsing.Types
 import Language.Haskell.SourceGraph.Analyse.Utils

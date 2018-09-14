@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analysis of the entire overall piece of software.
  -}
-module Language.Haskell.SourceGraph.Analyse.Everything(analyseEverything) where
+module Language.Haskell.SourceGraph.Analyse.Everything(analyseEverything,codeToGraph) where
 
 import Language.Haskell.SourceGraph.Parsing.Types
 import Language.Haskell.SourceGraph.Analyse.Utils

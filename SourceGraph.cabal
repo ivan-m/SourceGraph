@@ -70,11 +70,11 @@ Library
                         random,
                         directory,
                         mtl,
-                        fgl == 5.6.*,
+                        fgl >= 5.6,
                         Graphalyze >= 0.15,
-                        graphviz >= 2999.20 && < 2999.21,
-                        Cabal == 2.2.*,
-                        haskell-src-exts == 1.20.*
+                        graphviz >= 2999.20 ,
+                        Cabal >= 2.2,
+                        haskell-src-exts >= 1.20
 
 Executable SourceGraph {
 
@@ -103,9 +103,9 @@ Executable SourceGraph {
                         random,
                         directory,
                         mtl,
-                        fgl == 5.6.*,
+                        fgl >= 5.6,
                         Graphalyze >= 0.15,
-                        graphviz >= 2999.20 && < 2999.21,
-                        Cabal == 2.2.*,
-                        haskell-src-exts == 1.20.*
+                        graphviz >= 2999.20 ,
+                        Cabal >= 2.2,
+                        haskell-src-exts >= 1.20
 }

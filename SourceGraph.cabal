@@ -74,7 +74,7 @@ Library
                         Graphalyze >= 0.15,
                         graphviz >= 2999.20 ,
                         Cabal >= 2.2,
-                        haskell-src-exts >= 1.20
+                        haskell-src-exts >= 1.21
 
 Executable SourceGraph {
 

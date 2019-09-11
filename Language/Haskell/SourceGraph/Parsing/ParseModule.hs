@@ -338,7 +338,7 @@ addConstructor d (RecDecl _ n fd) = do
 addGConstructors     :: ModName -> DataType -> [GadtDecl l] -> EntityLookup
 addGConstructors m d = mkEl . map addGConst
     where
-      addGConst (GadtDecl _ n _ _) = Ent m (nameOf n) (Constructor d)
+      addGConst (GadtDecl _ n _ _ _ _) = Ent m (nameOf n) (Constructor d)
 
 -- -----------------------------------------------------------------------------
 -- Class declaration

@@ -30,33 +30,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  -}
 module Main where
 
-import CabalInfo
-import Parsing
-import Parsing.Types(nameOfModule)
-import Analyse
+import Language.Haskell.SourceGraph.CabalInfo
+import Language.Haskell.SourceGraph.Parsing
+import Language.Haskell.SourceGraph.Parsing.Types(nameOfModule,ParsedModules,ModName(..))
+import Language.Haskell.SourceGraph.Analyse
 
 import Data.Graph.Analysis
 import Data.Graph.Analysis.Reporting.Pandoc
 import Data.GraphViz.Commands(quitWithoutGraphviz)
 
-import Data.Char(toLower)
-import Data.Maybe(catMaybes)
 import qualified Data.Map as M
 import System.IO(hPutStrLn, stderr)
 import System.Directory( getCurrentDirectory
-                       , doesDirectoryExist
-                       , doesFileExist
-                       , getDirectoryContents)
+                       , doesFileExist)
 import System.FilePath( dropFileName
-                      , takeExtension
-                      , isPathSeparator
-                      , (</>)
-                      , (<.>))
+                      , (</>))
 import System.Random(newStdGen)
 import System.Environment(getArgs)
 import Control.Arrow(second)
 import Control.Monad(liftM)
-import Control.Exception(SomeException(..), try)
+--import Control.Exception(SomeException(..), try)
 
 import Data.Version(showVersion)
 import qualified Paths_SourceGraph as Paths(version)
@@ -121,99 +114,7 @@ parseMain fp = do (_,pms) <- parseHaskellFiles [fp]
                   let mn = fst $ M.findMin pms
                   return $ Just (nameOfModule mn, [mn])
 
--- | Determine if this is the path of a Haskell file.
-isHaskellFile    :: FilePath -> Bool
-isHaskellFile fp = any (`hasExt` fp) haskellExtensions
 
-hasExt     :: String -> FilePath -> Bool
-hasExt ext = (==) ext . drop 1 . takeExtension
-
-fpToModule :: FilePath -> ModName
-fpToModule = createModule . map pSep
-    where
-      pSep c
-          | isPathSeparator c = moduleSep
-          | otherwise         = c
-
--- -----------------------------------------------------------------------------
-
--- | Recursively parse all files from this directory
-parseFilesFrom    :: FilePath -> IO ([FilePath],ParsedModules)
-parseFilesFrom fp = parseHaskellFiles =<< getHaskellFilesFrom fp
-
-parseHaskellFiles :: [FilePath] -> IO ([FilePath],ParsedModules)
-parseHaskellFiles = liftM parseHaskell . readFiles
-
--- -----------------------------------------------------------------------------
-
--- Reading in the files.
-
--- | Recursively find all Haskell source files from the current directory.
-getHaskellFilesFrom :: FilePath -> IO [FilePath]
-getHaskellFilesFrom fp
-    = do isDir <- doesDirectoryExist fp -- Ensure it's a directory.
-         if isDir
-            then do r <- try getFilesIn -- Ensure we can read the directory.
-                    case r of
-                      (Right fs)             -> return fs
-                      (Left SomeException{}) -> return []
-            else return []
-    where
-      -- Filter out "." and ".." to stop infinite recursion.
-      nonTrivialContents :: IO [FilePath]
-      nonTrivialContents = do contents <- getDirectoryContents fp
-                              let contents' = filter (not . isTrivial) contents
-                              return $ map (fp </>) contents'
-      getFilesIn :: IO [FilePath]
-      getFilesIn = do contents <- nonTrivialContents
-                      (dirs,files) <- partitionM doesDirectoryExist contents
-                      let hFiles = filter isHaskellFile files
-                      recursiveFiles <- concatMapM getHaskellFilesFrom dirs
-                      return (hFiles ++ recursiveFiles)
-
-haskellExtensions :: [FilePath]
-haskellExtensions = ["hs","lhs"]
-
--- | Read in all the files that it can.
-readFiles :: [FilePath] -> IO [FileContents]
-readFiles = liftM catMaybes . mapM readFileContents
-
--- | Try to read the given file.
-readFileContents   :: FilePath -> IO (Maybe FileContents)
-readFileContents f = do cnts <- try $ readFile f
-                        case cnts of
-                          (Right str)            -> return $ Just (f,str)
-                          (Left SomeException{}) -> return Nothing
-
--- | A version of 'concatMap' for use in monads.
-concatMapM   :: (Monad m) => (a -> m [b]) -> [a] -> m [b]
-concatMapM f = liftM concat . mapM f
-
--- | A version of 'partition' for use in monads.
-partitionM      :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
-partitionM _ [] = return ([],[])
-partitionM p (x:xs) = do ~(ts,fs) <- partitionM p xs
-                         matches <- p x
-                         if matches
-                            then return (x:ts,fs)
-                            else return (ts,x:fs)
-
--- | Trivial paths are the current directory, the parent directory and
---   such directories
-isTrivial               :: FilePath -> Bool
-isTrivial "."           = True
-isTrivial ".."          = True
-isTrivial "_darcs"      = True
-isTrivial "dist"        = True
-isTrivial "HLInt.hs"    = True
-isTrivial f | isSetup f = True
-isTrivial _             = False
-
-lowerCase :: String -> String
-lowerCase = map toLower
-
-isSetup   :: String -> Bool
-isSetup f = lowerCase f `elem` map ("setup" <.>) haskellExtensions
 
 -- -----------------------------------------------------------------------------
 

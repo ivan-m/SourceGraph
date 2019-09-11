@@ -29,10 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Parse a Haskell module.
  -}
-module Parsing.ParseModule(parseModule) where
+module Language.Haskell.SourceGraph.Parsing.ParseModule(parseModule) where
 
-import Parsing.State
-import Parsing.Types
+import Language.Haskell.SourceGraph.Parsing.State
+import Language.Haskell.SourceGraph.Parsing.Types
 
 import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Syntax
@@ -50,7 +50,7 @@ import qualified Data.Set      as S
 
 -- -----------------------------------------------------------------------------
 
-parseModule       :: ParsedModules -> Module -> ParsedModule
+parseModule       :: ParsedModules -> Module l -> ParsedModule
 parseModule hms m = pm
     where
       mns = moduleNames hms
@@ -67,19 +67,29 @@ instance (ModuleItem a) => ModuleItem [a] where
 -- -----------------------------------------------------------------------------
 -- Overall Module
 
-instance ModuleItem Module where
-    parseInfo (Module _ nm _ _ es is ds)
-        = do let mn = createModule' nm
-             pm <- get
-             put $ pm { moduleName = mn }
-             parseInfo es
-             parseInfo is
-             parseInfo ds
+splitModuleHeadMaybe :: Maybe (ModuleHead l) -> (ModuleName l,Maybe [ExportSpec l])
+splitModuleHeadMaybe Nothing = (ModuleName (error "noloc") "Main",Nothing)
+splitModuleHeadMaybe (Just h) = splitModuleHead h
+
+splitModuleHead :: ModuleHead l -> (ModuleName l,Maybe [ExportSpec l])
+splitModuleHead (ModuleHead _ n _ es) = (n,fmap exports es)
+    where
+    exports (ExportSpecList _ xs) = xs
+
+instance ModuleItem (Module l) where
+    parseInfo (Module _ h _ is ds) = do
+        let (nm,es) = splitModuleHeadMaybe h
+        let mn = createModule' nm
+        pm <- get
+        put $ pm { moduleName = mn }
+        parseInfo es
+        parseInfo is
+        parseInfo ds
 
 -- -----------------------------------------------------------------------------
 -- Imports
 
-instance ModuleItem ImportDecl where
+instance ModuleItem (ImportDecl l) where
     parseInfo iDcl
         = do mns <- getModuleNames
              ms  <- getModules
@@ -99,14 +109,14 @@ instance ModuleItem ImportDecl where
 
         imported nm Nothing
             = case importSpecs iDcl of
-                Just (False,is) -> mkSet
+                Just (ImportSpecList _ False is) -> mkSet
                                    $ map (createEnt nm) is
                 _               -> S.empty
         imported _  (Just ml)
             = case importSpecs iDcl of
                 Nothing         -> exprtd
-                Just (False,is) -> lstd is
-                Just (True, is) -> exprtd `S.difference` lstd is
+                Just (ImportSpecList _ False is) -> lstd is
+                Just (ImportSpecList _ True is) -> exprtd `S.difference` lstd is
             where
               exprtd = exports ml
               exLk = exportLookup ml
@@ -114,9 +124,9 @@ instance ModuleItem ImportDecl where
 
 -- | Guesstimate the correct 'Entity' designation for those from
 --   external modules.
-createEnt                      :: ModName -> ImportSpec -> [Entity]
+createEnt                      :: ModName -> ImportSpec l -> [Entity]
 createEnt mn (IVar _ n)        = [Ent mn (nameOf n) NormalEntity]
-createEnt mn (IThingWith n cs) = map (\c -> Ent mn c (eT c)) cs'
+createEnt mn (IThingWith _ n cs) = map (\c -> Ent mn c (eT c)) cs'
     where
       n' = nameOf n
       cs' = map nameOf cs
@@ -130,14 +140,14 @@ createEnt _  _                 = []
 
 -- | Determine the correct 'Entity' designation for the listed import item.
 listedEnt                         :: ParsedModule -> EntityLookup
-                                     -> ImportSpec -> [Entity]
+                                     -> ImportSpec l -> [Entity]
 listedEnt _  el (IVar _ n)        = [lookupEntity' el $ nameOf n]
 listedEnt _  _  IAbs{}            = []
-listedEnt pm _  (IThingAll n)     = esFrom dataDecls ++ esFrom classDecls
+listedEnt pm _  (IThingAll _ n)     = esFrom dataDecls ++ esFrom classDecls
                                     -- one will be empty
     where
       esFrom f = maybe [] M.elems $ M.lookup (nameOf n) (f pm)
-listedEnt pm _  (IThingWith n cs) = esFrom dataDecls ++ esFrom classDecls
+listedEnt pm _  (IThingWith _ n cs) = esFrom dataDecls ++ esFrom classDecls
     where
       el f = M.lookup (nameOf n) $ f pm
       esFrom = maybe [] (\lk -> map (lookupEntity' lk . nameOf) cs) . el
@@ -148,7 +158,7 @@ listedEnt pm _  (IThingWith n cs) = esFrom dataDecls ++ esFrom classDecls
 -- If the export list is unspecified but there is a function called
 -- "main" defined, then it is defined as the export list (otherwise
 -- all top-level items are exported).
-instance ModuleItem (Maybe [ExportSpec]) where
+instance ModuleItem (Maybe [ExportSpec l]) where
     parseInfo Nothing    = do pm <- get
                               fpm <- getFutureParsedModule
                               el <- getLookup
@@ -163,23 +173,23 @@ instance ModuleItem (Maybe [ExportSpec]) where
 
 -- Doesn't work on re-exported Class/Data specs.
 listedExp                           :: ParsedModule -> EntityLookup
-                                       -> ExportSpec -> [Entity]
+                                       -> ExportSpec l -> [Entity]
 listedExp _  el (EVar _ qn)         = maybe [] (return . lookupEntity el)
                                       $ qName qn
 listedExp _  _  EAbs{}              = []
-listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
-                                      -- one will be empty
-    where
-      esFrom f = fromMaybe []
-                 $ do n <- liftM snd $ qName qn
-                      el <- M.lookup n $ f pm
-                      return $ M.elems el
-listedExp pm _  (EThingWith qn cs)  = esFrom dataDecls ++ esFrom classDecls
+--listedExp pm _  (EThingAll qn)      = esFrom dataDecls ++ esFrom classDecls
+--                                      -- one will be empty
+--    where
+--      esFrom f = fromMaybe []
+--                 $ do n <- liftM snd $ qName qn
+--                      el <- M.lookup n $ f pm
+--                      return $ M.elems el
+listedExp pm _  (EThingWith _ _ qn cs)  = esFrom dataDecls ++ esFrom classDecls
     where
       esFrom f = fromMaybe [] $ do mn <- fmap snd $ qName qn
                                    el <- M.lookup mn $ f pm
                                    return $ map (lookupEntity' el . nameOf) cs
-listedExp pm _  (EModuleContents m) = fromMaybe []
+listedExp pm _  (EModuleContents _ m) = fromMaybe []
                                       . fmap (S.toList . importedEnts)
                                       . M.lookup (createModule' m)
                                       $ imports pm
@@ -187,27 +197,46 @@ listedExp pm _  (EModuleContents m) = fromMaybe []
 -- -----------------------------------------------------------------------------
 -- Main part of the module
 
-instance ModuleItem Decl where
+instRuleHead :: InstRule l -> InstHead l
+instRuleHead (IParen _ r) = instRuleHead r
+instRuleHead (IRule l _ _ h) = h
+
+splitInstHead :: InstHead l -> (QName l,[Type l])
+splitInstHead (IHCon _ n) = (n,[])
+splitInstHead (IHInfix _ t n) = (n,[t])
+splitInstHead (IHParen _ h) = splitInstHead h
+splitInstHead (IHApp _ h t) = (n,ts++[t])
+    where (n,ts) = splitInstHead h
+
+declHeadName :: DeclHead l -> Name l
+declHeadName (DHead l n) = n
+declHeadName (DHInfix l _ n) = n
+declHeadName (DHParen _ h) = declHeadName h
+declHeadName (DHApp _ h _) = declHeadName h
+
+instance ModuleItem (Decl l) where
     -- Type alias
     parseInfo TypeDecl{} = return ()
     -- Type Families: don't seem to have any entities.
     parseInfo TypeFamDecl{} = return ()
     -- Data or Newtype
-    parseInfo (DataDecl _ _ _ nm _ cs _)
-        = do let d = nameOf nm
-             els <- mapM (addConstructor d . unQConDecl) cs
-             pm <- get
-             let el = M.unions els
-                 dds' = M.insert d el $ dataDecls pm
-             put $ pm { dataDecls = dds' }
+    parseInfo (DataDecl _ _ _ h cs _) = do
+        let nm = declHeadName h
+        let d = nameOf nm
+        els <- mapM (addConstructor d . unQConDecl) cs
+        pm <- get
+        let el = M.unions els
+            dds' = M.insert d el $ dataDecls pm
+        put $ pm { dataDecls = dds' }
     -- GADT-style Data or Newtype
-    parseInfo (GDataDecl _ _ _ n _ _ gds _)
-        = do m <- getModuleName
-             pm <- get
-             let d = nameOf n
-                 el = addGConstructors m d gds
-                 dds' = M.insert d el $ dataDecls pm
-             put $ pm { dataDecls = dds' }
+    parseInfo (GDataDecl _ _ _ h _ gds _) = do
+        let n = declHeadName h
+        m <- getModuleName
+        pm <- get
+        let d = nameOf n
+            el = addGConstructors m d gds
+            dds' = M.insert d el $ dataDecls pm
+        put $ pm { dataDecls = dds' }
     -- Data Families: don't seem to have any entities
     parseInfo DataFamDecl{} = return ()
     -- Type families are basically aliases...
@@ -220,18 +249,21 @@ instance ModuleItem Decl where
     -- todo
     parseInfo GDataInsDecl{} = return ()
     -- Defining a new class
-    parseInfo (ClassDecl _ _ n _ _ cds)
-        = do let c = nameOf n
-             mels <- mapM (addClassDecl c) cds
-             pm <- get
-             let el = M.unions $ catMaybes mels
-                 cl' = M.insert c el $ classDecls pm
-             put $ pm { classDecls = cl' }
+    parseInfo (ClassDecl _ _ h _ cds) = do
+        let n = declHeadName h
+        let c = nameOf n
+        mels <- mapM (addClassDecl c) $ maybe [] id cds
+        pm <- get
+        let el = M.unions $ catMaybes mels
+            cl' = M.insert c el $ classDecls pm
+        put $ pm { classDecls = cl' }
     -- Instance of a class
-    parseInfo (InstDecl _ _ _ _ n ts ids)
-        = do let c = snd . fromJust $ qName n
-                 d = unwords $ map prettyPrint ts
-             mapM_ (addInstDecl c d) ids
+    parseInfo (InstDecl _ _ r ids) = do
+        let h = instRuleHead r
+        let (n,ts) = splitInstHead h
+        let c = snd . fromJust $ qName n
+            d = unwords $ map prettyPrint ts
+        mapM_ (addInstDecl c d) $ maybe [] id ids
     -- Stand-alone deriving
     parseInfo DerivDecl{} = return ()
     -- Fixity of infix operators
@@ -243,7 +275,7 @@ instance ModuleItem Decl where
     -- Type sigs... use the actual function
     parseInfo TypeSig{} = return ()
     -- Actual Function
-    parseInfo (FunBind ms) = mapM_ addMatch ms
+    parseInfo (FunBind _ ms) = mapM_ addMatch ms
     -- Defining a variable, etc.
     parseInfo pb@PatBind{}
         = do mn <- getModuleName
@@ -269,29 +301,33 @@ instance ModuleItem Decl where
 -- -----------------------------------------------------------------------------
 -- Constructors
 
-unQConDecl                        :: QualConDecl -> ConDecl
+unQConDecl                        :: QualConDecl l -> ConDecl l
 unQConDecl (QualConDecl _ _ _ cd) = cd
 
-addConstructor                 :: DataType -> ConDecl -> PState EntityLookup
-addConstructor d (ConDecl n _) = do m <- getModuleName
-                                    let n' = nameOf n
-                                        e = Ent m n' (Constructor d)
-                                    return $ M.singleton (Nothing,n') e
-addConstructor d (InfixConDecl _ n _) = do m <- getModuleName
-                                           let n' = nameOf n
-                                               e = Ent m n' (Constructor d)
-                                           return $ M.singleton (Nothing,n') e
-addConstructor d (RecDecl n rbs) = do m <- getModuleName
-                                      pm <- get
-                                      let n' = nameOf n
-                                          ce = Ent m n' (Constructor d)
-                                          rs = map nameOf $ concatMap fst rbs
-                                          res = map (mkRe m) rs
-                                          es = ce : res
-                                          fcs = MS.fromList $ map (mkFc ce) res
-                                      put $ addFcs pm fcs
-                                      return $ mkEl es
-    where
+addConstructor                 :: DataType -> ConDecl l -> PState EntityLookup
+addConstructor d (ConDecl _ n _) = do
+    m <- getModuleName
+    let n' = nameOf n
+        e = Ent m n' (Constructor d)
+    return $ M.singleton (Nothing,n') e
+addConstructor d (InfixConDecl _ _ n _) = do
+    m <- getModuleName
+    let n' = nameOf n
+        e = Ent m n' (Constructor d)
+    return $ M.singleton (Nothing,n') e
+addConstructor d (RecDecl _ n fd) = do
+    let rbs = map (\(FieldDecl _ x y) -> (x,y)) fd
+    m <- getModuleName
+    pm <- get
+    let n' = nameOf n
+        ce = Ent m n' (Constructor d)
+        rs = map nameOf $ concatMap fst rbs
+        res = map (mkRe m) rs
+        es = ce : res
+        fcs = MS.fromList $ map (mkFc ce) res
+    put $ addFcs pm fcs
+    return $ mkEl es
+  where
       mkRe m r = Ent m r (RecordFunction d)
       mkFc c r = FC r c RecordConstructor
       addFcs pm fcs = pm { funcCalls = fcs `MS.union` funcCalls pm }
@@ -299,26 +335,26 @@ addConstructor d (RecDecl n rbs) = do m <- getModuleName
 -- -----------------------------------------------------------------------------
 -- GADT constructors
 
-addGConstructors     :: ModName -> DataType -> [GadtDecl] -> EntityLookup
+addGConstructors     :: ModName -> DataType -> [GadtDecl l] -> EntityLookup
 addGConstructors m d = mkEl . map addGConst
     where
-      addGConst (GadtDecl _ n _ _) = Ent m (nameOf n) (Constructor d)
+      addGConst (GadtDecl _ n _ _ _ _) = Ent m (nameOf n) (Constructor d)
 
 -- -----------------------------------------------------------------------------
 -- Class declaration
 
-addClassDecl               :: ClassName -> ClassDecl
+addClassDecl               :: ClassName -> ClassDecl l
                               -> PState (Maybe EntityLookup)
-addClassDecl c (ClsDecl d) = addCDecl c d
+addClassDecl c (ClsDecl _ d) = addCDecl c d
 addClassDecl _ _           = return Nothing
 
-addCDecl                    :: ClassName -> Decl -> PState (Maybe EntityLookup)
+addCDecl                    :: ClassName -> Decl l -> PState (Maybe EntityLookup)
 addCDecl c (TypeSig _ ns _) = do m <- getModuleName
                                  let ns' = map nameOf ns
                                      eTp = ClassMethod c
                                      es = map (\n -> Ent m n eTp) ns'
                                  return $ Just (mkEl es)
-addCDecl c (FunBind ms)     = mapM_ (addCMatch c) ms >> return Nothing
+addCDecl c (FunBind _ ms)     = mapM_ (addCMatch c) ms >> return Nothing
 
 addCDecl c pb@PatBind{}     = do mn <- getModuleName
                                  el <- getLookup
@@ -350,7 +386,7 @@ addCDecl c pb@PatBind{}     = do mn <- getModuleName
 -- Can't have anything else in classes
 addCDecl _ _                = return Nothing
 
-addCMatch     :: ClassName -> Match -> PState ()
+addCMatch     :: ClassName -> Match l -> PState ()
 addCMatch c m = do el <- getLookup
                    di <- addFuncCalls (DefaultInstance c) m
                    pm <- get
@@ -365,21 +401,22 @@ addCMatch c m = do el <- getLookup
 -- -----------------------------------------------------------------------------
 -- Instance Declaration
 
-addInstDecl                    :: ClassName -> DataType -> InstDecl -> PState ()
-addInstDecl c d (InsDecl decl) = do cs <- addIDecl c d decl
-                                    mn <- getModuleName
-                                    pm <- get
-                                    let fromThisMod = (==) mn . inModule
-                                        cs' = S.filter (not . fromThisMod) cs
-                                        pm' = pm { virtualEnts = virtualEnts pm
-                                                                 `S.union`
-                                                                 cs'
-                                                 }
-                                    put pm'
+addInstDecl                    :: ClassName -> DataType -> InstDecl l -> PState ()
+addInstDecl c d (InsDecl _ decl) = do
+    cs <- addIDecl c d decl
+    mn <- getModuleName
+    pm <- get
+    let fromThisMod = (==) mn . inModule
+        cs' = S.filter (not . fromThisMod) cs
+        pm' = pm { virtualEnts = virtualEnts pm
+            `S.union`
+            cs'
+            }
+    put pm'
 addInstDecl _ _ _              = return ()
 
-addIDecl                  :: ClassName -> DataType -> Decl -> PState (Set Entity)
-addIDecl c d (FunBind ms) = liftM S.fromList $ mapM (addIMatch c d) ms
+addIDecl                  :: ClassName -> DataType -> Decl l -> PState (Set Entity)
+addIDecl c d (FunBind _ ms) = liftM S.fromList $ mapM (addIMatch c d) ms
 addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                el <- getLookup
                                pm <- get
@@ -410,7 +447,7 @@ addIDecl c d pb@PatBind{} = do mn <- getModuleName
                                return $ S.map fst cis
 addIDecl _ _ _            = return S.empty
 
-addIMatch       :: ClassName -> DataType -> Match -> PState Entity
+addIMatch       :: ClassName -> DataType -> Match l -> PState Entity
 addIMatch c d m = do pmf <- getFutureParsedModule
                      fi <- addFuncCalls (ClassInstance c d) m
                      pm <- get
@@ -445,7 +482,7 @@ classFuncLookup c pmf n = case inModule e of
 -- -----------------------------------------------------------------------------
 -- For top-level functions
 
-addMatch   :: Match -> PState ()
+addMatch   :: Match l -> PState ()
 addMatch m = do e <- addFuncCalls NormalEntity m
                 pm <- get
                 put $ pm { topEnts = S.insert e $ topEnts pm }
@@ -454,7 +491,7 @@ addMatch m = do e <- addFuncCalls NormalEntity m
 
 -- Add the appropriate 'FunctionCall' values and return the created
 -- 'Entity'.  The 'FunctionCall's have @callType = NormalCall@.
-addFuncCalls      :: EntityType -> Match -> PState Entity
+addFuncCalls      :: EntityType -> Match l -> PState Entity
 addFuncCalls et m = do mn <- getModuleName
                        el <- getLookup
                        pm <- get
@@ -483,64 +520,74 @@ type Defined = Set QEntityName
 type Called = MultiSet QEntityName
 type DefCalled = (Defined, Called)
 
-getMatch                         :: Match -> PState DefCalled
-getMatch (Match _ n ps _ rhs bs) = do (avs, afs) <- getPats ps
-                                      rcs <- getRHS rhs
-                                      (bds, bcs) <- getBindings bs
-                                      let vs = avs `S.union` bds
-                                          fs = MS.unions [afs, rcs, bcs]
-                                          cs = defElsewhere fs vs
-                                      return (S.singleton $ nameOf' n, cs)
+getMatch                         :: Match l -> PState DefCalled
+getMatch (Match _ n ps rhs bs) = do
+    (avs, afs) <- getPats ps
+    rcs <- getRHS rhs
+    (bds, bcs) <- getMaybeBindings bs
+    let vs = avs `S.union` bds
+        fs = MS.unions [afs, rcs, bcs]
+        cs = defElsewhere fs vs
+    return (S.singleton $ nameOf' n, cs)
+getMatch (InfixMatch _ _ n ps rhs bs) = do
+    (avs, afs) <- getPats ps
+    rcs <- getRHS rhs
+    (bds, bcs) <- getMaybeBindings bs
+    let vs = avs `S.union` bds
+        fs = MS.unions [afs, rcs, bcs]
+        cs = defElsewhere fs vs
+    return (S.singleton $ nameOf' n, cs)
 
 -- In a pattern, all variables are ones that have just been defined to
 -- use in that function, etc.
-getPat                     :: Pat -> PState DefCalled
+getPat                     :: Pat l -> PState DefCalled
 -- Variable
-getPat (PVar n)            = return $ onlyVar n
+getPat (PVar _ n)            = return $ onlyVar n
 -- Literal value
 getPat PLit{}              = return noEnts
 -- n + k pattern
-getPat (PNPlusK n _)       = return $ onlyVar n
+getPat (PNPlusK _ n _)       = return $ onlyVar n
 -- e.g. a : as
-getPat (PInfixApp p1 c p2) = do (v1, c1) <- getPat p1
-                                (v2, c2) <- getPat p2
-                                return ( v1 `S.union` v2
-                                       , insQName c $ c1 `MS.union` c2)
+getPat (PInfixApp _ p1 c p2) = do
+    (v1, c1) <- getPat p1
+    (v2, c2) <- getPat p2
+    return ( v1 `S.union` v2, insQName c $ c1 `MS.union` c2)
 -- Data constructor + args
-getPat (PApp qn ps)        = liftM (second $ insQName qn) $ getPats ps
+getPat (PApp _ qn ps)        = liftM (second $ insQName qn) $ getPats ps
 -- Tuple
-getPat (PTuple _ ps)       = getPats ps
+getPat (PTuple _ _ ps)       = getPats ps
 -- Explicit list
-getPat (PList ps)          = getPats ps
+getPat (PList _ ps)          = getPats ps
 -- Parens around a Pat
-getPat (PParen p)          = getPat p
+getPat (PParen _ p)          = getPat p
 -- Record pattern
-getPat (PRec q ps)         = liftM (second (insQName q) . sMsUnions)
+getPat (PRec _ q ps)         = liftM (second (insQName q) . sMsUnions)
                              $ mapM getPField ps
 -- @-pattern
-getPat (PAsPat n p)        = liftM (sMsMerge (onlyVar n)) $ getPat p
+getPat (PAsPat _ n p)        = liftM (sMsMerge (onlyVar n)) $ getPat p
 -- _
-getPat PWildCard           = return noEnts
+getPat (PWildCard _)          = return noEnts
 -- ~pat
-getPat (PIrrPat p)         = getPat p
+getPat (PIrrPat _ p)         = getPat p
 -- pattern with explicit type-sig
 getPat (PatTypeSig _ p _)  = getPat p
 -- View pattern (function -> constructor) [this avoids an explicit
 -- case statement]
-getPat (PViewPat e p)      = do ec <- getExp e
-                                (pd,pc) <- getPat p
-                                return (pd, ec `MS.union` pc)
+getPat (PViewPat _ e p)      = do
+    ec <- getExp e
+    (pd,pc) <- getPat p
+    return (pd, ec `MS.union` pc)
 -- HaRP... no idea now to deal with this
 getPat PRPat{}             = return noEnts
 -- !foo
-getPat (PBangPat p)        = getPat p
+getPat (PBangPat _ p)        = getPat p
 -- The rest are XML and TH patterns
 getPat _                   = return noEnts
 
-getPats :: [Pat] -> PState DefCalled
+getPats :: [Pat l] -> PState DefCalled
 getPats = liftM sMsUnions . mapM getPat
 
-insQName       :: QName -> Called -> Called
+insQName       :: QName l -> Called -> Called
 insQName qn sq = maybe sq (flip MS.insert sq) $ qName qn
 
 onlyVar   :: (Named n) => n -> DefCalled
@@ -548,97 +595,105 @@ onlyVar n = (S.singleton $ nameOf' n, MS.empty)
 
 -- Punned fields: not registered as variables
 -- Record wildcards: nothing returned
-getPField                  :: PatField -> PState DefCalled
-getPField (PFieldPat qn p) = liftM (second $ insQName qn) $ getPat p
-getPField (PFieldPun n)    = return (S.empty, MS.fromList . maybeToList $ qName n)
-getPField PFieldWildcard   = return noEnts
+getPField                  :: PatField l -> PState DefCalled
+getPField (PFieldPat _ qn p) = liftM (second $ insQName qn) $ getPat p
+getPField (PFieldPun _ n)    = return (S.empty, MS.fromList . maybeToList $ qName n)
+getPField (PFieldWildcard _)   = return noEnts
 
 -- Still have to take care of function calls here somewhere...
 -- Nope: trying to get the overall list of functions called here...
 -- and _then_ create function calls to them!
 
-getBindings              :: Binds -> PState DefCalled
-getBindings (BDecls ds)  = liftM sMsUnions $ mapM getDecl ds
-getBindings (IPBinds is) = liftM sMsUnions $ mapM getIPBinds is
+getMaybeBindings              :: Maybe (Binds l) -> PState DefCalled
+getMaybeBindings Nothing = return noEnts
+getMaybeBindings (Just b) = getBindings b
 
-getIPBinds                :: IPBind -> PState DefCalled
+getBindings              :: Binds l -> PState DefCalled
+getBindings (BDecls _ ds)  = liftM sMsUnions $ mapM getDecl ds
+getBindings (IPBinds _ is) = liftM sMsUnions $ mapM getIPBinds is
+
+getIPBinds                :: IPBind l -> PState DefCalled
 getIPBinds (IPBind _ _ e) = liftM noDefs $ getExp e
 
-getDecl                    :: Decl -> PState DefCalled
-getDecl (FunBind ms)       = liftM sMsUnions $ mapM getMatch ms
+getDecl                    :: Decl l -> PState DefCalled
+getDecl (FunBind _ ms)       = liftM sMsUnions $ mapM getMatch ms
 getDecl (PatBind _ p r bs) = do (pd,pc) <- getPat p
                                 rc      <- getRHS r
-                                (bd,bc) <- getBindings bs
+                                (bd,bc) <- getMaybeBindings bs
                                 let fs = MS.unions [pc, rc, bc]
                                     cs = defElsewhere fs bd
                                 return (pd, cs)
 getDecl _                  = return noEnts
 
 
-getRHS                   :: Rhs -> PState Called
-getRHS (UnGuardedRhs e)  = getExp e
-getRHS (GuardedRhss grs) = liftM MS.unions $ mapM getGRhs grs
+getRHS                   :: Rhs l -> PState Called
+getRHS (UnGuardedRhs _ e)  = getExp e
+getRHS (GuardedRhss _ grs) = liftM MS.unions $ mapM getGRhs grs
 
-getGRhs                     :: GuardedRhs -> PState Called
+getGRhs                     :: GuardedRhs l -> PState Called
 getGRhs (GuardedRhs _ ss e) = do (sf,sc) <- getStmts ss
                                  ec <- getExp e
                                  return $ defElsewhere' sf (sc `MS.union` ec)
 
 -- Gah, this might be wrong...
 
-getExp          :: Exp -> PState Called
-getExp (Var qn) = return $ maybeEnt qn
+getExp          :: Exp l -> PState Called
+getExp (Var _ qn) = return $ maybeEnt qn
 getExp IPVar{}  = return MS.empty
-getExp (Con qn)  = return $ maybeEnt qn
+getExp (Con _ qn)  = return $ maybeEnt qn
 getExp Lit{}              = return MS.empty
-getExp (InfixApp e1 o e2) = do e1' <- getExp e1
-                               e2' <- getExp e2
-                               let o' = maybeEnt o
-                               return $ e1' `MS.union` e2' `MS.union` o'
-getExp (App ef vf) = liftM2 MS.union (getExp ef) (getExp vf)
-getExp (NegApp e)      = getExp e
+getExp (InfixApp _ e1 o e2) = do
+    e1' <- getExp e1
+    e2' <- getExp e2
+    let o' = maybeEnt o
+    return $ e1' `MS.union` e2' `MS.union` o'
+getExp (App _ ef vf) = liftM2 MS.union (getExp ef) (getExp vf)
+getExp (NegApp _ e)      = getExp e
 getExp (Lambda _ ps e) = do (pd,pc) <- getPats ps
                             e' <- getExp e
                             return $ defElsewhere' pd
                                        $ MS.union pc e'
-getExp (Let bs e) = do (bd,bc) <- getBindings bs
-                       e' <- getExp e
-                       return $ defElsewhere' bd (MS.union bc e')
-getExp (If i t e)  = getExps [i,t,e]
-getExp (Case e as) = do e' <- getExp e
-                        as' <-  mapM getAlt as
-                        return $ MS.unions (e':as')
-getExp (Do ss) = chainedCalled $ map getStmt ss
-getExp (MDo ss) = liftM (uncurry defElsewhere') $ getStmts ss
-getExp (Tuple _ es) = getExps es
-getExp (TupleSection _ mes) = getExps $ catMaybes mes
-getExp (List es) = getExps es
-getExp (Paren e) = getExp e
-getExp (LeftSection e o) = liftM (MS.union (maybeEnt o)) $ getExp e
-getExp (RightSection o e) = liftM (MS.union (maybeEnt o)) $ getExp e
-getExp (RecConstr qn fus) = liftM (MS.union (maybeEnt qn)) $ getFUpdates fus
-getExp (RecUpdate e fus)  = liftM2 MS.union (getExp e) (getFUpdates fus)
-getExp (EnumFrom e) = getExp e
-getExp (EnumFromTo e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
-getExp (EnumFromThen e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
-getExp (EnumFromThenTo e1 e2 e3) = liftM2 MS.union (getExp e1)
+getExp (Let _ bs e) = do
+    (bd,bc) <- getBindings bs
+    e' <- getExp e
+    return $ defElsewhere' bd (MS.union bc e')
+getExp (If _ i t e)  = getExps [i,t,e]
+getExp (Case _ e as) = do
+    e' <- getExp e
+    as' <-  mapM getAlt as
+    return $ MS.unions (e':as')
+getExp (Do _ ss) = chainedCalled $ map getStmt ss
+getExp (MDo _ ss) = liftM (uncurry defElsewhere') $ getStmts ss
+getExp (Tuple _ _ es) = getExps es
+getExp (TupleSection _ _ mes) = getExps $ catMaybes mes
+getExp (List _ es) = getExps es
+getExp (Paren _ e) = getExp e
+getExp (LeftSection _ e o) = liftM (MS.union (maybeEnt o)) $ getExp e
+getExp (RightSection _ o e) = liftM (MS.union (maybeEnt o)) $ getExp e
+getExp (RecConstr _ qn fus) = liftM (MS.union (maybeEnt qn)) $ getFUpdates fus
+getExp (RecUpdate _ e fus)  = liftM2 MS.union (getExp e) (getFUpdates fus)
+getExp (EnumFrom _ e) = getExp e
+getExp (EnumFromTo _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (EnumFromThen _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (EnumFromThenTo _ e1 e2 e3) = liftM2 MS.union (getExp e1)
                                    $ liftM2 MS.union (getExp e2) (getExp e3)
-getExp (ListComp e qss) = liftM2 MS.union (getExp e) $ getQStmts qss
-getExp (ParComp e qsss) = liftM2 MS.union (getExp e) . liftM MS.unions
+getExp (ListComp _ e qss) = liftM2 MS.union (getExp e) $ getQStmts qss
+getExp (ParComp _ e qsss) = liftM2 MS.union (getExp e) . liftM MS.unions
                           $ mapM getQStmts qsss
 getExp (ExpTypeSig _ e _) = getExp e
-getExp (VarQuote qn) = return $ maybeEnt qn
-getExp (Proc _ p e) = do (pd,pc) <- getPat p
-                         c <- getExp e
-                         return $ pc `MS.union` defElsewhere c pd
-getExp (RightArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
-getExp (LeftArrApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
-getExp (RightArrHighApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
-getExp (LeftArrHighApp e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (VarQuote _ qn) = return $ maybeEnt qn
+getExp (Proc _ p e) = do
+    (pd,pc) <- getPat p
+    c <- getExp e
+    return $ pc `MS.union` defElsewhere c pd
+getExp (RightArrApp _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (LeftArrApp _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (RightArrHighApp _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
+getExp (LeftArrHighApp _ e1 e2) = liftM2 MS.union (getExp e1) (getExp e2)
 -- Everything else is TH, XML or Pragmas
 getExp _ = return MS.empty
 
-getExps :: [Exp] -> PState Called
+getExps :: [Exp l] -> PState Called
 getExps = liftM MS.unions . mapM getExp
 
 chainedCalled :: [PState DefCalled] -> PState Called
@@ -647,43 +702,43 @@ chainedCalled = foldrM go MS.empty
       go s cs = liftM (rmVars cs) s
       rmVars cs (d,c) = defElsewhere cs d `MS.union` c
 
-getQStmt                      :: QualStmt -> PState DefCalled
-getQStmt (QualStmt s)         = getStmt s
-getQStmt (ThenTrans e)        = liftM noDefs $ getExp e
-getQStmt (ThenBy e1 e2)       = liftM noDefs $ liftM2 MS.union (getExp e1) (getExp e2)
-getQStmt (GroupBy e)          = liftM noDefs $ getExp e
-getQStmt (GroupUsing e)       = liftM noDefs $ getExp e
-getQStmt (GroupByUsing e1 e2) = liftM noDefs
+getQStmt                      :: QualStmt l -> PState DefCalled
+getQStmt (QualStmt _ s)         = getStmt s
+getQStmt (ThenTrans _ e)        = liftM noDefs $ getExp e
+getQStmt (ThenBy _ e1 e2)       = liftM noDefs $ liftM2 MS.union (getExp e1) (getExp e2)
+getQStmt (GroupBy _ e)          = liftM noDefs $ getExp e
+getQStmt (GroupUsing _ e)       = liftM noDefs $ getExp e
+getQStmt (GroupByUsing _ e1 e2) = liftM noDefs
                                 $ liftM2 MS.union (getExp e1) (getExp e2)
 
-getQStmts :: [QualStmt] -> PState Called
+getQStmts :: [QualStmt l] -> PState Called
 getQStmts = chainedCalled . map getQStmt
 
-getFUpdates :: [FieldUpdate] -> PState Called
+getFUpdates :: [FieldUpdate l] -> PState Called
 getFUpdates = liftM MS.unions . mapM getFUpdate
 
-getFUpdate                    :: FieldUpdate -> PState Called
-getFUpdate (FieldUpdate qn e) = liftM (MS.union (maybeEnt qn)) $ getExp e
-getFUpdate (FieldPun n)       = return . MS.fromList . maybeToList $ qName n
+getFUpdate                    :: FieldUpdate l -> PState Called
+getFUpdate (FieldUpdate _ qn e) = liftM (MS.union (maybeEnt qn)) $ getExp e
+getFUpdate (FieldPun _ n)       = return . MS.fromList . maybeToList $ qName n
 getFUpdate _                  = return MS.empty
 
-getAlt                  :: Alt -> PState Called
+getAlt                  :: Alt l -> PState Called
 getAlt (Alt _ p gas bs) = do (pd,pc) <- getPat p
                              gc <- getRHS gas
-                             (bd,bc) <- getBindings bs
+                             (bd,bc) <- getMaybeBindings bs
                              let d = pd `S.union` bd
                                  c = pc `MS.union` gc `MS.union` bc
                              return $ defElsewhere c d
 
-getStmt                   :: Stmt -> PState DefCalled
+getStmt                   :: Stmt l -> PState DefCalled
 getStmt (Generator _ p e) = do (pf,pc) <- getPat p
                                ec <- getExp e
                                return (pf, defElsewhere' pf (MS.union pc ec))
-getStmt (Qualifier e)     = liftM noDefs $ getExp e
-getStmt (LetStmt bs)      = getBindings bs
-getStmt (RecStmt ss)      = getStmts ss
+getStmt (Qualifier _ e)     = liftM noDefs $ getExp e
+getStmt (LetStmt _ bs)      = getBindings bs
+getStmt (RecStmt _ ss)      = getStmts ss
 
-getStmts :: [Stmt] -> PState DefCalled
+getStmts :: [Stmt l] -> PState DefCalled
 getStmts = liftM sMsUnions . mapM getStmt
 
 noDefs :: Called -> DefCalled
@@ -700,35 +755,35 @@ noEnts = (S.empty, MS.empty)
 class Named a where
     nameOf :: a -> String
 
-instance Named Name where
-    nameOf (Ident n)  = n
-    nameOf (Symbol n) = n
+instance Named (Name l) where
+    nameOf (Ident _ n)  = n
+    nameOf (Symbol _ n) = n
 
 nameOf' :: (Named n) => n -> QEntityName
 nameOf' = (,) Nothing . nameOf
 
-instance Named CName where
-    nameOf (VarName n) = nameOf n
-    nameOf (ConName n) = nameOf n
+instance Named (CName l) where
+    nameOf (VarName _ n) = nameOf n
+    nameOf (ConName _ n) = nameOf n
 
-instance Named ModuleName where
-    nameOf (ModuleName m) = m
+instance Named (ModuleName l) where
+    nameOf (ModuleName _ m) = m
 
 -- | Create the 'ModName'.
-createModule' :: ModuleName -> ModName
+createModule' :: ModuleName l -> ModName
 createModule' = createModule . nameOf
 
 class QNamed a where
     qName :: a -> Maybe QEntityName
 
-instance QNamed QName where
-    qName (Qual m n) = Just (Just $ nameOf m, nameOf n)
-    qName (UnQual n) = Just (Nothing, nameOf n)
+instance QNamed (QName l) where
+    qName (Qual _ m n) = Just (Just $ nameOf m, nameOf n)
+    qName (UnQual _ n) = Just (Nothing, nameOf n)
     qName Special{}  = Nothing
 
-instance QNamed QOp where
-    qName (QVarOp qn) = qName qn
-    qName (QConOp qn) = qName qn
+instance QNamed (QOp l) where
+    qName (QVarOp _ qn) = qName qn
+    qName (QConOp _ qn) = qName qn
 
 sMsUnions :: (Ord a, Ord b) => [(Set a, MultiSet b)] -> (Set a, MultiSet b)
 sMsUnions = (S.unions *** MS.unions) . unzip

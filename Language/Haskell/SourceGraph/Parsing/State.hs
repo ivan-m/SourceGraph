@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Customised State Monad for parsing Haskell code.
  -}
-module Parsing.State
+module Language.Haskell.SourceGraph.Parsing.State
     ( PState
     , runPState
     , get
@@ -41,7 +41,7 @@ module Parsing.State
     , getModuleName
     ) where
 
-import Parsing.Types
+import Language.Haskell.SourceGraph.Parsing.Types
 
 import Control.Monad.RWS
 

@@ -1,5 +1,5 @@
 Name:                SourceGraph
-Version:             0.7.0.7
+Version:             0.7.0.8
 Synopsis:            Static code analysis using graph-theoretic techniques.
 Description: {
 Statically analyse Haskell source code using graph-theoretic
@@ -42,30 +42,56 @@ Build-Type:          Simple
 Extra-Source-Files: TODO
                     ChangeLog
 
-Tested-With:         GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4,
-                     GHC == 7.10.2, GHC == 7.11.*
+Tested-With:         GHC == 8.4.2
 
 Source-Repository head
     Type:         git
     Location:     https://github.com/ivan-m/SourceGraph
 
+Library
+  exposed-modules: Language.Haskell.SourceGraph.Analyse.Colors,
+                   Language.Haskell.SourceGraph.Analyse.Everything,
+                   Language.Haskell.SourceGraph.Analyse.GraphRepr,
+                   Language.Haskell.SourceGraph.Analyse.Imports,
+                   Language.Haskell.SourceGraph.Analyse.Module,
+                   Language.Haskell.SourceGraph.Analyse.Utils,
+                   Language.Haskell.SourceGraph.Analyse.Visualise,
+                   Language.Haskell.SourceGraph.Parsing.ParseModule,
+                   Language.Haskell.SourceGraph.Parsing.State,
+                   Language.Haskell.SourceGraph.Parsing.Types,
+                   Language.Haskell.SourceGraph.Analyse,
+                   Language.Haskell.SourceGraph.Parsing
+  Hs-source-dirs:   .
+  Other-Modules: Paths_SourceGraph
+  Build-Depends:        base == 4.*,
+                        containers,
+                        multiset,
+                        filepath,
+                        random,
+                        directory,
+                        mtl,
+                        fgl >= 5.6,
+                        Graphalyze >= 0.15,
+                        graphviz >= 2999.20 ,
+                        Cabal >= 2.2,
+                        haskell-src-exts >= 1.21
 
 Executable SourceGraph {
 
-    Main-Is:            Main.hs
-    Other-Modules:      CabalInfo,
-                        Parsing,
-                        Parsing.ParseModule,
-                        Parsing.State,
-                        Parsing.Types,
-                        Analyse,
-                        Analyse.Utils,
-                        Analyse.Colors,
-                        Analyse.GraphRepr,
-                        Analyse.Visualise,
-                        Analyse.Module,
-                        Analyse.Imports,
-                        Analyse.Everything,
+    Main-Is:            SourceGraph.hs
+    Other-Modules:      Language.Haskell.SourceGraph.CabalInfo,
+                        Language.Haskell.SourceGraph.Parsing,
+                        Language.Haskell.SourceGraph.Parsing.ParseModule,
+                        Language.Haskell.SourceGraph.Parsing.State,
+                        Language.Haskell.SourceGraph.Parsing.Types,
+                        Language.Haskell.SourceGraph.Analyse,
+                        Language.Haskell.SourceGraph.Analyse.Utils,
+                        Language.Haskell.SourceGraph.Analyse.Colors,
+                        Language.Haskell.SourceGraph.Analyse.GraphRepr,
+                        Language.Haskell.SourceGraph.Analyse.Visualise,
+                        Language.Haskell.SourceGraph.Analyse.Module,
+                        Language.Haskell.SourceGraph.Analyse.Imports,
+                        Language.Haskell.SourceGraph.Analyse.Everything,
                         Paths_SourceGraph
     Ghc-Options:        -Wall
     Ghc-Prof-Options:   -prof
@@ -77,9 +103,9 @@ Executable SourceGraph {
                         random,
                         directory,
                         mtl,
-                        fgl == 5.5.*,
-                        Graphalyze >= 0.14.1.0 && < 0.15,
-                        graphviz >= 2999.15.0.0 && < 2999.19,
-                        Cabal == 1.22.*,
-                        haskell-src-exts == 1.16.*
+                        fgl >= 5.6,
+                        Graphalyze >= 0.15,
+                        graphviz >= 2999.20 ,
+                        Cabal >= 2.2,
+                        haskell-src-exts >= 1.20
 }

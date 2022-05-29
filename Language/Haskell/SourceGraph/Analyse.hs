@@ -27,13 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
    Analyse Haskell software
  -}
-module Analyse(analyse, sgLegend) where
+module Language.Haskell.SourceGraph.Analyse(analyse, sgLegend) where
 
-import Analyse.Module
-import Analyse.Imports
-import Analyse.Everything
-import Analyse.Colors
-import Parsing.Types
+import Language.Haskell.SourceGraph.Analyse.Module
+import Language.Haskell.SourceGraph.Analyse.Imports
+import Language.Haskell.SourceGraph.Analyse.Everything
+import Language.Haskell.SourceGraph.Analyse.Colors
+import Language.Haskell.SourceGraph.Parsing.Types
 
 import Data.Graph.Analysis hiding (Bold)
 import qualified Data.Graph.Analysis.Reporting as R (DocInline(Bold))

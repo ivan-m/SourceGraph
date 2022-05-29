@@ -46,7 +46,7 @@ import Distribution.PackageDescription.Parse
 #endif
 import Distribution.Simple.Compiler                  (compilerInfo)
 import Distribution.Simple.GHC                       (configure)
-import Distribution.Simple.Program                   (defaultProgramConfiguration)
+import Distribution.Simple.Program                   (defaultProgramDb)
 import Distribution.System                           (buildPlatform)
 import Distribution.Verbosity                        (silent)
 
@@ -55,6 +55,7 @@ import Control.Monad     (liftM)
 import Data.List         (nub)
 import Data.Maybe        (fromJust, isJust)
 import System.FilePath   (dropExtension)
+import Distribution.Types.ComponentRequestedSpec (defaultComponentRequestedSpec)
 
 -- -----------------------------------------------------------------------------
 
@@ -73,7 +74,7 @@ readDescription = readPackageDescription
 
 ghcID :: IO CompilerInfo
 ghcID = liftM (compilerInfo . getCompiler)
-        $ configure silent Nothing Nothing defaultProgramConfiguration
+        $ configure silent Nothing Nothing defaultProgramDb
   where
     getCompiler (comp,_mplat,_progconfig) = comp
 
@@ -86,12 +87,13 @@ parseCabal fp = do cID <- ghcID
       getDesc = try . readDescription silent
       parseDesc cID = fmap parse . compactEithers . fmap (unGeneric cID)
       unGeneric cID = fmap fst
-                      . finalizePackageDescription emptyFlagAssignment -- flags, use later
-                                                   (const True) -- ignore
-                                                                -- deps
-                                                   buildPlatform
-                                                   cID
-                                                   []
+                      . finalizePD emptyFlagAssignment -- flags, use later
+                                   defaultComponentRequestedSpec
+                                   (const True) -- ignore
+                                   -- deps
+                                   buildPlatform
+                                   cID
+                                   []
       parse pd = (nm, exps)
           where
             nm = pName . pkgName $ package pd
